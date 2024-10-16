@@ -1,0 +1,219 @@
+name: tensor-right
+version: 0.1.0.0
+synopsis: Tensor rewriting rule verifier
+description: |
+  Tensor rewriting rule verifier
+
+dependencies:
+  - base >= 4.14 && < 5
+  - grisette >= 0.8 && < 0.9
+  - unordered-containers
+  - text
+  - mtl
+  - hashable
+  - prettyprinter
+  - ordered-containers
+  - deepseq
+  - sbv
+  - template-haskell
+
+library:
+  source-dirs: src
+  ghc-options:
+    - -Wextra
+    - -Wcompat
+    - -Widentities
+    - -Wincomplete-record-updates
+    - -Wmissing-export-lists
+    - -Wmissing-home-modules
+    - -Wmissing-import-lists
+    - -Wpartial-fields
+    - -Wunused-type-patterns
+
+_exe-ghc-options: &exe-ghc-options
+  - -threaded
+  - -rtsopts
+  - -with-rtsopts=-N
+
+_exe-extensions: &exe-extensions
+  - DuplicateRecordFields
+  - OverloadedStrings
+  - TypeApplications
+  - AllowAmbiguousTypes
+  - ScopedTypeVariables
+  - FlexibleContexts
+  - RankNTypes
+
+executables:
+  rules-add:
+    source-dirs: rules/add
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-mul:
+    source-dirs: rules/mul
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-reduce:
+    source-dirs: rules/reduce
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-compare:
+    source-dirs: rules/compare
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-slice:
+    source-dirs: rules/slice
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-iota:
+    source-dirs: rules/iota
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-pad:
+    source-dirs: rules/pad
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-dyslice:
+    source-dirs: rules/dyslice
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-dyupslice:
+    source-dirs: rules/dyupslice
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-broadcast:
+    source-dirs: rules/broadcast
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-concat:
+    source-dirs: rules/concat
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-logical:
+    source-dirs: rules/logical
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-relabel:
+    source-dirs: rules/relabel
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-dot:
+    source-dirs: rules/dot
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-conv:
+    source-dirs: rules/conv
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-debug:
+    source-dirs: rules/debug
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-max:
+    source-dirs: rules/max
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-not:
+    source-dirs: rules/not
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-clamp:
+    source-dirs: rules/clamp
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-select:
+    source-dirs: rules/select
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-reverse:
+    source-dirs: rules/reverse
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-sub:
+    source-dirs: rules/sub
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-divmod:
+    source-dirs: rules/divmod
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-maxMinToClampBefore:
+    source-dirs: rules/maxMinToClampBefore
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-maxMinToClampAfter:
+    source-dirs: rules/maxMinToClampAfter
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+  rules-generalize:
+    source-dirs: rules/generalize
+    main: Main.hs
+    dependencies: tensor-right
+    ghc-options: *exe-ghc-options
+    default-extensions: *exe-extensions
+
+tests:
+  spec:
+    main: Main.hs
+    source-dirs: test
+    dependencies:
+      - tensor-right
+      - test-framework >= 0.8.2 && < 0.9
+      - test-framework-hunit >= 0.3.0.2 && < 0.4
+      - test-framework-quickcheck2 >= 0.3.0.5 && < 0.4
+      - HUnit >= 1.6
+      - QuickCheck
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
