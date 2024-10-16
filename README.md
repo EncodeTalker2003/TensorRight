@@ -14,7 +14,7 @@ For TensorRight, we can express 121 rules out of 175, and we implemented 118 of 
 
 Out of the 121 rules that we can express in our DSL, we implemented 118 rules. We check how many rules TensorRight can verify in the unbounded setting. We support boolean, integer, and real-valued tensors in our DSL, and the rules are verified for all valid tensor types for that rule. We also measure the time taken to verify the rules in the unbounded setting (timeout of 10s for each tensor type). This corresponds to Section 7.2 and Figure 7 in the paper.
 
-Out of the 118 rules we implemented, we are able to verify 114 rules. Out of the 4 rules that we cannot verify, 3 rules timed out, while 1 was proven incorrect (discussed in claim 3.1).
+Out of the 118 rules we implemented, we are able to verify 114 rules. Out of the 4 rules that we cannot verify, 3 rules timed out, while 1 was proven incorrect (discussed in [Claim 3.1](#claim-31-maxmintoclamp-rule)).
 
 ### Claim 3: How TensorRight can be used to aid compiler developers in rapid developement
 
@@ -32,9 +32,9 @@ We implement the `FoldConvInputPad` rule as [conv/rule00](rules/conv/Main.hs). T
 
 ### Hardware Requirements
 
-To use this artifact, you will need a x86-64 machine capable of running Docker with at least 8GB of RAM.
+To use this artifact, you will need a x86-64 machine capable of running Docker with at least 16GB of RAM.
 The docker image would be about 11GB in size.
-The artifact has not been tested on on ARM-based systems such as Apple M1 or legacy CPUs that does not support modern ISAs including AVX/AVX2.
+The artifact has not been tested on on ARM-based systems such as Apple M1 or legacy CPUs that do not support modern ISAs including AVX/AVX2.
 
 We have tested the docker image on a physical machine running Ubuntu 22.04 LTS with an Intel(R) Core(TM) i7-13700H processor and 32 GB of RAM.
 The results you obtain may also vary from ours depending on your hardware and software configuration.
@@ -73,7 +73,7 @@ sudo usermod -aG docker $USER
 
 #### Build Docker Image
 
-**Expected Time**: 8-10 minutes
+**Expected Time**: 10-12 minutes
 
 To build the docker image, run the following command in the root directory of the artifact:
 
@@ -121,7 +121,7 @@ Script for this step:
 make verify && make plot
 ```
 
-`make verify` tries to verify all the 118 implemented rewrite rules, while logging the output in `plot/result.txt` (and also on stdout). `make plot` will consume the log, and generate a timing plot as `plots/timing_plot.pdf`.
+`make verify` tries to verify all the 118 implemented rewrite rules, while logging the output in `plot/result.txt` (and also on stdout). `make plot` will consume the log, and generate a timing plot as `plot/timing_plot.pdf`.
 
 **Expected Output should like**
 
