@@ -32,11 +32,11 @@ We implement the `FoldConvInputPad` rule as [conv/rule00](rules/conv/Main.hs). T
 
 ### Hardware Requirements
 
-To use this artifact, you will need a x86-64 machine capable of running Docker with at least 16GB of RAM.
+To use this artifact, you will need a x86-64 or a aarch64 machine capable of running Docker with at least 16GB of RAM.
 The docker image would be about 11GB in size.
-The artifact has not been tested on on ARM-based systems such as Apple M1 or legacy CPUs that do not support modern ISAs including AVX/AVX2.
+The artifact has not been tested on on legacy CPUs that do not support modern ISAs including AVX/AVX2.
 
-We have tested the docker image on a physical machine running Ubuntu 22.04 LTS with an Intel(R) Core(TM) i7-13700H processor and 32 GB of RAM.
+We have tested the docker image on a physical machine running Ubuntu 22.04 LTS with an Intel(R) Core(TM) i7-13700H processor and 32 GB of RAM and a MacBook Air with Apple M2 Chip and 16GB or RAM.
 The results you obtain may also vary from ours depending on your hardware and software configuration.
 
 ### Download and Installation
@@ -71,9 +71,18 @@ sudo usermod -aG docker $USER
 # docker run hello-world
 ```
 
-#### Build Docker Image
+#### Build Docker Image or Pull from DockerHub
 
 **Expected Time**: 10-12 minutes
+
+##### Pull from DockerHub
+
+docker pull lsrcz/tensor-right:latest
+
+This command will pull the lsrcz/tensor-right image from DockerHub.
+The docker image is based on Ubuntu 22.04 LTS and contains all the dependencies required to run the benchmarks.
+
+##### Build from Source
 
 To build the docker image, run the following command in the root directory of the artifact:
 
@@ -82,11 +91,18 @@ docker build -t tr .
 ```
 
 This command will build the docker image named `tr` using the `Dockerfile` present in the root directory of the artifact.
-The docker image is based on Ubuntu 22.04 LTS and contains all the dependencies required to run the benchmarks.
 
 #### Run Docker Container
 
-To run the docker container, run the following command in the root directory of the artifact:
+To run the docker container, run the following command in the root directory of the artifact.
+
+If you pulled from DockerHub:
+
+```bash
+docker run --rm -v "$(pwd)/plot:/home/tr/plot" -it lsrcz/tensor-right:latest /bin/bash
+```
+
+If you built the image from source code:
 
 ```bash
 docker run --rm -v "$(pwd)/plot:/home/tr/plot" -it tr /bin/bash
