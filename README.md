@@ -77,9 +77,12 @@ sudo usermod -aG docker $USER
 
 ##### Pull from DockerHub
 
+```bash
 docker pull lsrcz/tensor-right:latest
+```
 
-This command will pull the lsrcz/tensor-right image from DockerHub.
+This command will pull the `lsrcz/tensor-right` image from DockerHub.
+The docker image is built with the [Dockerfile](Dockerfile) present in this repo.
 The docker image is based on Ubuntu 22.04 LTS and contains all the dependencies required to run the benchmarks.
 
 ##### Build from Source
