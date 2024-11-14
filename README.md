@@ -6,26 +6,23 @@ This repo is the artifact associated with the POPL 2025 submission "TensorRight:
 
 ### Claim 1: Expressiveness of TensorRight DSL
 
-We compare the expressiveness of TensorRight with two other automatic tensor rewrite rules engines, [TASO](https://dl.acm.org/doi/10.1145/3341301.3359630) and [PET](https://www.usenix.org/system/files/osdi21-wang-haojie.pdf), across all the 175 rules. This corresponds to Section 7.1 and Table 1 in the paper.
+We compare the expressiveness of TensorRight with two other automatic tensor rewrite rules engines, [TASO](https://dl.acm.org/doi/10.1145/3341301.3359630) and [PET](https://www.usenix.org/system/files/osdi21-wang-haojie.pdf), across all the 175 rules. This corresponds to Section 8.1 and Table 1 in the paper.
 
 For TensorRight, we can express 121 rules out of 175, and we implemented 118 of those in our DSL, as present in [`rules/*/Main.hs`](./rules/). Meanwhile, for TASO and PET, the number of rules they can represent was calculated based on the operators they support, as seen in their respective papers.
 
 ### Claim 2: Verification Capabilities of TensorRight
 
-Out of the 121 rules that we can express in our DSL, we implemented 118 rules. We check how many rules TensorRight can verify in the unbounded setting. We support boolean, integer, and real-valued tensors in our DSL, and the rules are verified for all valid tensor types for that rule. We also measure the time taken to verify the rules in the unbounded setting (timeout of 10s for each tensor type). This corresponds to Section 7.2 and Figure 7 in the paper.
+Out of the 121 rules that we can express in our DSL, we implemented 118 rules. We evaluate how many rules TensorRight can verify in the unbounded setting. We support boolean, integer, and real-valued tensors in our DSL, and the rules are verified for all valid tensor types for that rule.
 
-Out of the 118 rules we implemented, we are able to verify 114 rules. Out of the 4 rules that we cannot verify, 3 rules timed out, while 1 was proven incorrect (discussed in [Claim 3.1](#claim-31-maxmintoclamp-rule)).
+We measure the time taken to verify the rules in the unbounded setting (timeout of 10s for each tensor type).
+This corresponds to Section 8.2 and Figure 10a in the paper.
+Out of the 118 rules we implemented, we are able to verify 115 rules. The remaining 3 rules timed out.
+
+We also plot the number of tasks (bounded-verification instances) discharged for all the verified rules in Figure 10b.
 
 ### Claim 3: How TensorRight can be used to aid compiler developers in rapid developement
 
-We showcase this claim using two case studies in Section 7.3.
-
-#### Claim 3.1: `MaxMinToClampRule`
-
-The `MaxMinToClamp` rule (implemented as [clamp/rule02](rules/clamp/Main.hs) and [maxMinToClampBefore](rules/maxMinToClampBefore/Main.hs)) is proven incorrect, since TensorRight returns a counterexample for the same. We modify the rule by adding a required precondition, as implemented in [maxMinToClampAfter](rules/maxMinToClampAfter/Main.hs), and show that the rule is verified.
-
-#### Claim 3.2: Generalizing Rewrite Rules
-
+We showcase this claim in Section 8.3.
 We implement the `FoldConvInputPad` rule as [conv/rule00](rules/conv/Main.hs). This rule is very restrictive, since it contains some preconditions. We show that TensorRight can prove a more general version of this rule, as implemented in [foldConvInputPadGeneral](rules/generalize/Main.hs).
 
 ## Download, Installation and Sanity Testing
@@ -140,7 +137,9 @@ Script for this step:
 make verify && make plot
 ```
 
-`make verify` tries to verify all the 118 implemented rewrite rules, while logging the output in `plot/result.txt` (and also on stdout). `make plot` will consume the log, and generate a timing plot as `plot/timing_plot.pdf`.
+`make verify` tries to verify all the 118 implemented rewrite rules, while logging the output in `plot/result.txt` (and also on stdout).
+`make plot` will consume the log and print statistics like minimum and maximum verification times across all rules.
+It also generates a timing plot as `plot/timing_plot.pdf` and the trend of number of tasks as `plot/num_tasks.pdf`.
 
 **Expected Output should like**
 
@@ -170,89 +169,36 @@ make verify && make plot
 ...
 ...
 [SUCCESS-Overall]: [7.529329899989534e-2s] Verification succeeded.
-Total success: 114
-Total failed: 4
-```
-
-The command outputs the number of rules that the tool was and wasn't able to verify, as shown in the expected output. The paper claims that TensorRight can verify 114 out of 118 rules, and 4 rules cannot be verified. The 4 failures are explained below:
-
-- `Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)`: TensorRight returns a counterexample for this rule (omitted from the output)
-- 3 rules time out
-  - `Slice(Reverse(A,dims),start,stride,end) ⇒ Reverse(Slice(A,...),dims)`
-  - `Rem(Add(Iota,Const), Const) ⇒ Rem(Iota,Const)`
-  - `Rem(Add(X,Const), Const) ⇒ Rem(X,Const)`
-
-The number of timeouts could vary, depending on the host machine. The generated plot can be compared with Figure 7 in the paper.
-
-### Claim 3.1: MaxMinToClamp Rule
-
-The buggy rule is implemented in [maxMinToClampBefore](rules/maxMinToClampBefore/Main.hs).  
-Running the following command will generate a counterexample for the rule
-
-```bash
-make maxMinToClampBefore
-```
-
-**Expected output should look like**
-
-```
-====> Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)
->>> Int
-Verifying rule Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)
-Verifying rule Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)
+Total success: 115
+Total failed: 3
+stack build
+if [ ! -f ./plot/result.txt ]; then ./runall.sh 2> >(tee ./plot/result.txt); fi
+cd plot && python3 timing_plot.py
 ...
-Model
-  { i[adim.0] -> 0 :: Integer,
-    map:adim.0.map -> 1 :: Integer,
-    tensor:const1 -> TabularFun {funcTable = [], defaultFuncValue = 8855} :: (=->) Integer Integer,
-    tensor:a -> TabularFun {funcTable = [], defaultFuncValue = 8853} :: (=->) Integer Integer,
-    tensor:const2 -> TabularFun {funcTable = [], defaultFuncValue = 8854} :: (=->) Integer Integer
-  }
-[FAIL-Int]: [9.595382999395952e-2s] Verification failed with error: user error (  Not verified forall left si exists right si.)
 ...
-[FAIL-Real]: [5.833859898848459e-2s] Verification failed with error: user error (  Not verified forall left si exists right si.)
->>> Overall
-[FAIL-Overall]: [0.1542924289824441s] Verification failed with error: user error (  Not verified forall left si exists right si.)
+Number of rules with 1 tasks: 110
+Number of rules with 4 tasks: 2
+Number of rules with 2 tasks: 3
 ```
 
-We apply a fix to this rule, by adding the following precondition, as implemented in [maxMinToClampAfter](rules/maxMinToClampAfter/Main.hs):
+The command outputs the number of rules that the tool was and wasn't able to verify, as shown in the expected output, along with some statistics regarding the verification of all the rules.
 
-```haskell
-forallIdx <- newMap "forallIdx" adim
-  numTensorAssumption
-    [const1, const2]
-    forallIdx
-    (\[c1, c2] -> simpleMerge $ do
-      u <- runExceptT $ tensorValLt c1 c2
-      case u of
-        Left _ -> con True
-        Right v -> return v
-      )
-```
+The paper claims that TensorRight can verify 115 out of 118 rules and 3 rules cannot be verified. The 3 rules that fail to verify (timeouts) are mentioned below:
 
-Running the following command will verify the patched rule:
+- `Slice(Reverse(A,dims),start,stride,end) ⇒ Reverse(Slice(A,...),dims)`
+- `Rem(Add(Iota,Const), Const) ⇒ Rem(Iota,Const)`
+- `Rem(Add(X,Const), Const) ⇒ Rem(X,Const)`
 
-```bash
-make maxMinToClampAfter
-```
+The number of timeouts could vary depending on the host machine.
 
-**Expected output should look like**
+The paper also claims the following distribution of the number of tasks for the verified rules:
+- Number of rules with 1 tasks: 110
+- Number of rules with 2 tasks: 3
+- Number of rules with 4 tasks: 2
 
-```
-====> Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)
->>> Int
-Verifying rule Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)
-Verifying rule Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)
-...
-[SUCCESS-Int]: [9.654362399305683e-2s] Verification succeeded.
->>> Real
-...
-[SUCCESS-Real]: [5.6789184993249364e-2s] Verification succeeded.
->>> Overall
-[SUCCESS-Overall]: [0.1533328089863062s] Verification succeeded.
-```
+Both the generated plots can be compared with Figure 10a and Figure 10b in the paper.
 
-### Claim 3.2: Generalized Rule
+### Claim 3: Generalized Rule
 
 **Expected Time**: 5-6 minutes
 
@@ -303,8 +249,6 @@ The generated warnings can be safely ignored, as long as the rules are verified.
 - [Makefile](Makefile): commands to run the benchmarks and generate the timing plot
   - `make verify`: verifies the rewrite rules and logs the output in `plot/result.txt`
   - `make plot`: generates the timing plot `plot/timing_plot.py` using the data in `plot/result.txt`
-  - `make maxMinToClampBefore`: provides the counterexample for the buggy rewrite rule [maxMinToClampBefore](rules/maxMinToClampBefore/Main.hs)
-  - `make maxMinToClampAfter`: verifies the patched rewrite rule [maxMinToClampAfter](rules/maxMinToClampAfter/Main.hs)
   - `make generalize`: verifies the generalized rewrite rule [foldConvInputPadGeneral](rules/generalize/Main.hs)
   - `make build`: builds the TensorRight project if not already built
   - `make clean`: cleans the build artifacts

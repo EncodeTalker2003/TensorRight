@@ -8,12 +8,6 @@ build:
 verify: build
 	./runall.sh 2> >(tee ./plot/result.txt);
 
-maxMinToClampBefore: build
-	stack exec rules-maxMinToClampBefore
-
-maxMinToClampAfter: build
-	stack exec rules-maxMinToClampAfter
-
 generalize: build
 	stack exec rules-generalize
 

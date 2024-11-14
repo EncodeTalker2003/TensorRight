@@ -2,6 +2,10 @@ from typing import Sequence
 import dataclasses
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+from collections import Counter
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 @dataclasses.dataclass
 class Result:
@@ -153,15 +157,67 @@ with open("result.txt", "r") as f:
 
 number_of_failed_inference = len(list(filter(lambda x: x < 0, map(lambda x: x.first_num_of_tasks(), res))))
 number_of_tasks = list(filter(lambda x: x >= 0, map(lambda x: x.first_num_of_tasks(), res)))
+success = list(filter(lambda x: x.succeeeded, res))
 
-times = list(map(lambda x: x.overall_time(), res))
+times = list(map(lambda x: x.overall_time(), success))
 
-bins = np.logspace(np.log10(0.001),np.log10(max(t for t in times)), 5)
+def print_stats(success):
+    times = list(map(lambda x: x.overall_time(), success))
+    print(f'Number of verified rules: {len(times)}')
+    print(f'Max time: {max(times)}')
+    print(f'Min time: {min(times)}')
+    print(f'Average time: {sum(times) / len(times)}')
+    print(f'Geometric mean: {np.exp(np.mean(np.log(times)))}')
+    print(f'Number of rules verified under 1s: {len(list(filter(lambda x: x < 1, times)))}')
+    print(f'Number of rules verified under 5s: {len(list(filter(lambda x: x < 5, times)))}')
 
-plt.hist(times, bins=20, edgecolor='black')
+    assert(all(list(map(lambda x: x.all_same_num_of_tasks(), success))))
+    num_tasks_freq = Counter(list(map(lambda x: x.first_num_of_tasks(), success)))
+    for key, value in num_tasks_freq.items():
+        print(f'Number of rules with {key} tasks: {value}')
 
-plt.title('Total Time taken for Unbounded Verification')
-plt.xlabel('Time (seconds)')
-plt.ylabel('Number of Rules')
+    tasks = sorted(num_tasks_freq.keys())
+    values = [num_tasks_freq[t] for t in tasks]
+    tasks = [str(t) for t in tasks]
+    plt.figure(figsize=(3,2))
+    plt.bar(tasks, values, label="AQP", color='C0')
+    plt.xticks(tasks)
+    plt.ylim(0, max(values) * 1.2)
 
-plt.savefig('timing_plot.pdf', format="pdf", bbox_inches="tight", dpi=600)
+    for t in tasks:
+        plt.text(t, num_tasks_freq[int(t)] + 0.5, str(num_tasks_freq[int(t)]), ha='center', va='bottom')
+
+    plt.ylabel('Number of Rules')
+    plt.xlabel('Number of Tasks')
+    plt.savefig('num_tasks.pdf', bbox_inches='tight', dpi=600, pad_inches=0)
+    plt.clf()
+
+def plot_hist(times):
+    bins = np.logspace(np.log10(0.001),np.log10(max(t for t in times)), 5)
+
+    plt.hist(times, bins=20, edgecolor='black')
+
+    plt.title('Total Time taken for Unbounded Verification')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('Number of Rules')
+
+    plt.savefig('timing_plot.pdf', format="pdf", bbox_inches="tight", dpi=600)
+    plt.clf()
+
+def plot_cdf(times):
+    times = sorted(times)
+    yvals = np.arange(len(times))/float(len(times))
+    plt.figure(figsize=(3,2))
+    plt.grid()
+    plt.xscale("log")
+    plt.yticks([0.2 * i for i in range(6)])
+    plt.ylim(0,1)
+    plt.xlabel(" Total Verification Time (s)")
+    plt.ylabel("CDF")
+    plt.xticks([0.1, 1, 10], ['0.1', '1', '10'])
+    plt.plot(times, yvals, color='C0')
+    plt.savefig("timing_plot.pdf", format="pdf", bbox_inches='tight', dpi=600, pad_inches=0)
+    plt.clf()
+
+print_stats(success)
+plot_cdf(times)

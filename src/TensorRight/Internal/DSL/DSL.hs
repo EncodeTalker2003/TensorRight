@@ -47,6 +47,7 @@ module TensorRight.Internal.DSL.DSL
     iota,
     slice,
     pad,
+    padLow,
     relabel,
     dynamicSlice,
     dynamicUpdateSlice,
@@ -151,6 +152,7 @@ import TensorRight.Internal.DSL.Expr
         UNumScalarBinOp,
         UNumUnaryOp,
         UPad,
+        UPadLow,
         UReduce,
         URelabel,
         UReshapeDegenerate,
@@ -763,6 +765,28 @@ instance PaddingFun Padding where
 instance (a ~ ParamDesc) => PaddingFun [a] where
   type PaddingRes [a] = [ParamDesc] -> [ParamDesc] -> DSLContext Expr
   pad e elem low int high = padImpl e elem $ Padding low int high
+
+-- | Pseudo-padding operation: only performs low padding
+padLow ::
+  (ExprInContext e, ToElem v, ToDType v) =>
+  -- | The tensor to pad
+  e ->
+  -- | The element to pad. Usually created with 'intElem' or 'boolElem'.
+  v ->
+  -- | Contains the low padding configurations.
+  -- Specified as @['ParamDesc']@.
+  [ParamDesc] ->
+  DSLContext Expr
+padLow expr' elem low = do
+  expr <- liftInContext expr'
+  let l = toParamMaps low
+  internWithCheck (UPadLow expr (toElem elem) l) $ do
+    shape <- shapeOf expr
+    ty <- typeOf expr
+    let ety = toDType elem
+    assert "Element must have the same type as the tensor" $ ty == ety
+    checkParamsWellFormed shape l
+    return (shape, ty)
 
 -- | Named arguments to the 'convBase' and 'conv' operation.
 data ConvConfig = ConvConfig

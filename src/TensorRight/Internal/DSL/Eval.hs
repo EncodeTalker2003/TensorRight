@@ -71,6 +71,7 @@ import TensorRight.Internal.Core.Tensor
     numScalarBinOp,
     numUnaryOp,
     pad,
+    padLow,
     reduce,
     relabel,
     reshapeDegenerate,
@@ -95,7 +96,7 @@ import TensorRight.Internal.Core.Tensor.Typed
         convRDilation
       ),
     DySliceArgs (DySliceArgs, sizes, start),
-    PaddingArgs (PaddingArgs, padHigh, padInterior, padLow),
+    PaddingArgs (PaddingArgs, highPad, interiorPad, lowPad),
     SliceArgs (SliceArgs, end, start, strides),
     TensorElem (TensorElemVal),
   )
@@ -131,6 +132,7 @@ import TensorRight.Internal.DSL.Expr
         NumScalarBinOp,
         NumUnaryOp,
         Pad,
+        PadLow,
         Reduce,
         Relabel,
         ReshapeDegenerate,
@@ -352,7 +354,11 @@ eval' (Pad _ expr elem PaddingArgsExpr {..}) = do
   l <- getSizesFromParams low
   h <- getSizesFromParams high
   i <- getSizesFromParams interior
-  return $ pad e elem $ PaddingArgs {padLow = l, padInterior = i, padHigh = h}
+  return $ pad e elem $ PaddingArgs {lowPad = l, interiorPad = i, highPad = h}
+eval' (PadLow _ expr elem lowPadding) = do
+  e <- eval expr
+  l <- getSizesFromParams lowPadding
+  return $ padLow e elem l
 eval' (DynamicSlice _ expr DySliceArgsExpr {..}) = do
   e <- eval expr
   start <- getIndicesFromParams start

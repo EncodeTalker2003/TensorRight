@@ -38,6 +38,7 @@ module TensorRight.Internal.Core.Tensor.Typed
     iota,
     sliceStartEndStrides,
     pad,
+    padLow,
     constant,
     relabel,
     transpose,
@@ -657,9 +658,9 @@ sliceStartEndStrides to SliceArgs {..} = do
       newOutputShape
 
 data PaddingArgs = PaddingArgs
-  { padLow :: Sizes,
-    padInterior :: Sizes,
-    padHigh :: Sizes
+  { lowPad :: Sizes,
+    interiorPad :: Sizes,
+    highPad :: Sizes
   }
   deriving (Generic, Eq, Show)
 
@@ -673,11 +674,11 @@ pad to v PaddingArgs {..} = do
   t <- tensor to
   let axes = tensorAllAxes t
   assert "low must be subset of original axes" $
-    allAxes padLow `HS.isSubsetOf` axes
+    allAxes lowPad `HS.isSubsetOf` axes
   assert "interior must be subset of original axes" $
-    allAxes padInterior `HS.isSubsetOf` axes
+    allAxes interiorPad `HS.isSubsetOf` axes
   assert "high must be subset of original axes" $
-    allAxes padHigh `HS.isSubsetOf` axes
+    allAxes highPad `HS.isSubsetOf` axes
   let checkAndFillInAxes name pad = do
         assert (name <> " must be subset of original axes") $
           allAxes pad `HS.isSubsetOf` axes
@@ -685,9 +686,9 @@ pad to v PaddingArgs {..} = do
         let emptyPads =
               fromHashMap $ HS.foldr (`HM.insert` 0) HM.empty diffDims
         return $ unionAxisMap pad emptyPads
-  filledPadLow <- checkAndFillInAxes "low" padLow
-  filledPadHigh <- checkAndFillInAxes "high" padHigh
-  filledPadInterior <- checkAndFillInAxes "interior" padInterior
+  filledPadLow <- checkAndFillInAxes "low" lowPad
+  filledPadHigh <- checkAndFillInAxes "high" highPad
+  filledPadInterior <- checkAndFillInAxes "interior" interiorPad
   -- assert "low must be non-negative" $ symAll (.>= 0) $ asHashMap padLow
   assert
     "interior must be non-negative"
@@ -733,6 +734,48 @@ pad to v PaddingArgs {..} = do
             safeDivAxisMap
               (subAxisMap indices $ castAxisMap filledPadLow)
               (mapAxisMap (+ 1) $ castAxisMap filledPadInterior)
+          mrgIf
+            isPadded
+            (mrgReturn $ TensorElemVal v)
+            (tensorAccess t originalIndices)
+      )
+      paddedShape
+
+padLow ::
+  (TensorOperand t elem) =>
+  t ->
+  elem ->
+  Sizes ->
+  ErrorEnv (Tensor elem)
+padLow to v lowPadding = do
+  t <- tensor to
+  let axes = tensorAllAxes t
+  assert "low must be subset of original axes" $
+    allAxes lowPadding `HS.isSubsetOf` axes
+  let checkAndFillInAxes name pad = do
+        assert (name <> " must be subset of original axes") $
+          allAxes pad `HS.isSubsetOf` axes
+        let diffDims = axes `HS.difference` allAxes pad
+        let emptyPads =
+              fromHashMap $ HS.foldr (`HM.insert` 0) HM.empty diffDims
+        return $ unionAxisMap pad emptyPads
+  filledPadLow <- checkAndFillInAxes "low" lowPadding
+  let paddedShape =
+        addAxisMap filledPadLow $ tensorShape t
+  assert
+    "padded shape must be non-negative"
+    $ symAll (.>= 0)
+    $ asHashMap paddedShape
+  let isLowerPaddedArea =
+        zipFoldAxisMap (.>) (con False) (.||) filledPadLow . castAxisMap
+
+  let isPaddedArea indices = do
+        mrgReturn $ isLowerPaddedArea indices
+  mrgReturn $
+    Tensor
+      ( \indices -> do
+          isPadded <- isPaddedArea indices
+          let originalIndices = subAxisMap indices $ castAxisMap filledPadLow
           mrgIf
             isPadded
             (mrgReturn $ TensorElemVal v)
@@ -1048,16 +1091,16 @@ conv input weights convBaseConfig ConvPaddingArgs {..} = do
   let paddedInput =
         pad input 0 $
           PaddingArgs
-            { padLow = convLowPadding,
-              padInterior = mapAxisMap (\x -> x - 1) convLDilation,
-              padHigh = convHighPadding
+            { lowPad = convLowPadding,
+              interiorPad = mapAxisMap (\x -> x - 1) convLDilation,
+              highPad = convHighPadding
             }
   let paddedWeights =
         pad weights 0 $
           PaddingArgs
-            { padLow = fromKVPairs [],
-              padInterior = mapAxisMap (\x -> x - 1) convRDilation,
-              padHigh = fromKVPairs []
+            { lowPad = fromKVPairs [],
+              interiorPad = mapAxisMap (\x -> x - 1) convRDilation,
+              highPad = fromKVPairs []
             }
   convBase paddedInput paddedWeights convBaseConfig
 

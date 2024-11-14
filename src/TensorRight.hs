@@ -427,6 +427,7 @@ module TensorRight
     intElem,
     boolElem,
     pad,
+    padLow,
     relabel,
     DySlice (..),
     dynamicSlice,

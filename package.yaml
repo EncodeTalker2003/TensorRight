@@ -183,18 +183,6 @@ executables:
     dependencies: tensor-right
     ghc-options: *exe-ghc-options
     default-extensions: *exe-extensions
-  rules-maxMinToClampBefore:
-    source-dirs: rules/maxMinToClampBefore
-    main: Main.hs
-    dependencies: tensor-right
-    ghc-options: *exe-ghc-options
-    default-extensions: *exe-extensions
-  rules-maxMinToClampAfter:
-    source-dirs: rules/maxMinToClampAfter
-    main: Main.hs
-    dependencies: tensor-right
-    ghc-options: *exe-ghc-options
-    default-extensions: *exe-extensions
   rules-generalize:
     source-dirs: rules/generalize
     main: Main.hs

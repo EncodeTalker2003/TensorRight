@@ -58,53 +58,39 @@ rulePadTwice _ = do
     lhs
     rhs
   
-ruleFoldPad :: forall a. NumRule a
-ruleFoldPad _ = do
-  spatial <- newAdim "spatial"
-  inputShape <- newMap "inputShape" spatial
+rulePadLowCombine :: forall a. AnyDTypeRule a
+rulePadLowCombine _ = do
+  adim <- newAdim "adim"
 
-  inputs <-
-    newTensor @a
-      "inputs"
-      [spatial --> inputShape]
-  
-  [low, high] <- newNonNegMaps ["low", "high"] spatial
-  ldilation <- newMap "ldilation" spatial
-  [plow, phigh] <- newNonNegMaps ["plow", "phigh"] spatial
-  pint <- newMap "pint" spatial
-  newlow <- combineMap "newlow" (\[a, b, c] -> a + b * c) [low, plow, ldilation]
-  newint <- combineMap "newint" (\[a, b] -> a + a * b - 1) [ldilation, pint]
-  newhigh <- combineMap "newhigh" (\[a, b, c] -> a + b * c) [high, phigh, ldilation]
-  interior <- combineMap "interior" (\[a] -> a - 1) [ldilation]
+  shape <- newMap "shape" adim
 
-  lhsInputsPadded <-
-    pad inputs (0 :: a) $
-      Padding
-        { low = [spatial --> plow],
-          interior = [spatial --> pint],
-          high = [spatial --> phigh]
-        }
+  [innerLow, outerLow, rhsLow] <-
+    newMaps ["innerLow", "outerLow", "rhsLow"] adim
+
+  let cond outerPad innerPad rhsPad =
+        precondition [outerPad, innerPad, rhsPad] $
+          \[vouterPad, vinnerPad, vrhsPad] ->
+            vrhsPad .== vouterPad + vinnerPad
+
+  cond outerLow innerLow rhsLow
+  precondition [innerLow] $ \[vi0] -> vi0 .>= 0
+  precondition [outerLow] $ \[vi0] -> vi0 .>= 0
+
+  x <- newTensor @a "x" [adim --> shape]
+
   lhs <-
-    pad lhsInputsPadded (0 :: a) $
-      Padding
-        { low = [spatial --> low],
-          interior = [spatial --> interior],
-          high = [spatial --> high]
-        }
-  
+    padLow
+      (padLow x ("a" :: a) [adim --> innerLow])
+        ("a" :: a) [adim --> outerLow]
+
   rhs <-
-    pad inputs (0 :: a) $
-      Padding
-        { low = [spatial --> newlow],
-          interior = [spatial --> newint],
-          high = [spatial --> newhigh]
-        }
-  
-  precondition [inputShape] $ \[s] -> s .> 0
-  
-  rewrite "" lhs rhs
+    padLow x ("a" :: a) [adim --> rhsLow]
+  rewrite
+    "padLow(padLow(x, l0), l1) --> padLow(x, l0+l1)"
+    lhs
+    rhs
 
 main :: IO ()
 main = do
   verifyAnyDTypeDSL rulePadTwice
-  verifyNumDSL ruleFoldPad
+  verifyAnyDTypeDSL rulePadLowCombine

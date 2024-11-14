@@ -171,6 +171,11 @@ data ExprDescription
         _padElem :: Elem,
         _padding :: PaddingArgsExpr
       }
+  | PadLowDescription
+      { _expr :: Int,
+        _padElem :: Elem,
+        _lowPadding :: Params
+      }
   | DynamicSliceDescription
       { _expr :: Int,
         _dySlice :: DySliceArgsExpr
@@ -236,6 +241,11 @@ data UExpr
         _padElem :: Elem,
         _padding :: PaddingArgsExpr
       }
+  | UPadLow
+      { _expr :: Expr,
+        _padElem :: Elem,
+        _lowPadding :: Params
+      }
   | UDynamicSlice {_expr :: Expr, _dySlice :: DySliceArgsExpr}
   | UDynamicUpdateSlice {_expr :: Expr, _update :: Expr, _start :: Params}
   | UConcat {_lhs :: Expr, _rhs :: Expr, _axis :: AdimRef}
@@ -287,6 +297,7 @@ describe (UConstant e s) = ConstantDescription e s
 describe (UIota s d) = IotaDescription s d
 describe (USlice e s) = SliceDescription (_id e) s
 describe (UPad e v c) = PadDescription (_id e) v c
+describe (UPadLow e v c) = PadLowDescription (_id e) v c
 describe (UDynamicSlice e s) = DynamicSliceDescription (_id e) s
 describe (UDynamicUpdateSlice e u s) = DynamicUpdateSliceDescription (_id e) (_id u) s
 describe (UConcat l r d) = ConcatDescription (_id l) (_id r) d
@@ -338,6 +349,12 @@ data Expr
         _expr :: Expr,
         _padElem :: Elem,
         _padding :: PaddingArgsExpr
+      }
+  | PadLow
+      { _id :: Int,
+        _expr :: Expr,
+        _padElem :: Elem,
+        _lowPadding :: Params
       }
   | DynamicSlice
       { _id :: Int,
@@ -477,6 +494,8 @@ instance PPrint Expr where
     prettyWithConstructor n "slice" [pformatPrec 11 e, pformatPrec 11 s]
   pformatPrec n (Pad _ e v c) =
     prettyWithConstructor n "pad" [pformatPrec 11 e, pformatPrec 11 v, pformatPrec 11 c]
+  pformatPrec n (PadLow _ e v c) =
+    prettyWithConstructor n "padLow" [pformatPrec 11 e, pformatPrec 11 v, pformatPrec 11 c]
   pformatPrec n (DynamicSlice _ e s) =
     prettyWithConstructor n "dynamicSlice" [pformatPrec 11 e, pformatPrec 11 s]
   pformatPrec n (DynamicUpdateSlice _ e u s) =
@@ -556,6 +575,7 @@ identify i (UConstant e s) = Constant i e s
 identify i (UIota s d) = Iota i s d
 identify i (USlice e s) = Slice i e s
 identify i (UPad e v c) = Pad i e v c
+identify i (UPadLow e v c) = PadLow i e v c
 identify i (UDynamicSlice e s) = DynamicSlice i e s
 identify i (UDynamicUpdateSlice e u s) = DynamicUpdateSlice i e u s
 identify i (UConcat l r d) = Concat i l r d

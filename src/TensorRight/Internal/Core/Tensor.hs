@@ -34,6 +34,7 @@ module TensorRight.Internal.Core.Tensor
     iota,
     slice,
     pad,
+    padLow,
     relabel,
     transpose,
     concatTensor,
@@ -449,6 +450,16 @@ pad ::
 pad to elem config = do
   t <- tensor to
   genericApplyUnaryWithElem (\t e -> Typed.pad t e config) t elem
+
+padLow ::
+  (TensorOperand t) =>
+  t ->
+  Elem ->
+  Sizes ->
+  ErrorEnv Tensor
+padLow to elem lowPadConfig = do
+  t <- tensor to
+  genericApplyUnaryWithElem (\t e -> Typed.padLow t e lowPadConfig) t elem
 
 relabel :: (TensorOperand t) => t -> HM.HashMap Axis Axis -> ErrorEnv Tensor
 relabel to permutation =

@@ -44,7 +44,7 @@ import TensorRight.Internal.Core.Tensor.Typed
       ),
     DySliceArgs (DySliceArgs),
     NumBinOp (Add, Mul),
-    PaddingArgs (PaddingArgs, padHigh, padInterior, padLow),
+    PaddingArgs (PaddingArgs, highPad, interiorPad, lowPad),
     SliceArgs (SliceArgs, end, start, strides),
     Tensor (Tensor, tensorShape),
     TensorElem (TensorElemSum, TensorElemVal),
@@ -58,6 +58,7 @@ import TensorRight.Internal.Core.Tensor.Typed
     iota,
     numBinOp,
     pad,
+    padLow,
     reduce,
     sliceStartEndStrides,
     tensorAccess,
@@ -631,9 +632,9 @@ tensorTest =
               { tensor =
                   pad tensor 0 $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 0)],
-                        padInterior = fromKVPairs [(Axis "a", 0)],
-                        padHigh = fromKVPairs [(Axis "a", 1)]
+                      { lowPad = fromKVPairs [(Axis "a", 0)],
+                        interiorPad = fromKVPairs [(Axis "a", 0)],
+                        highPad = fromKVPairs [(Axis "a", 1)]
                       },
                 shape = Just $ fromKVPairs [(Axis "a", 1)],
                 access = Just $ fromKVPairs [(Axis "a", 0)],
@@ -645,15 +646,43 @@ tensorTest =
               { tensor =
                   pad tensor 0 $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 1), (Axis "b", 0)],
-                        padInterior = fromKVPairs [(Axis "a", 0), (Axis "b", 0)],
-                        padHigh = fromKVPairs [(Axis "a", 0), (Axis "b", 0)]
+                      { lowPad = fromKVPairs [(Axis "a", 1), (Axis "b", 0)],
+                        interiorPad = fromKVPairs [(Axis "a", 0), (Axis "b", 0)],
+                        highPad = fromKVPairs [(Axis "a", 0), (Axis "b", 0)]
                       },
                 shape = Just $ fromKVPairs [(Axis "a", 2), (Axis "b", 2)],
                 access = Just $ fromKVPairs [(Axis "a", 0), (Axis "b", 0)],
                 expected = Just (TensorElemVal 0)
               }
         ],
+      testGroup "padLow" $ do
+        let x623 =
+              simpleTensor @SymInteger
+                "x"
+                [("a", 6), ("b", 2), ("c", 3)]
+        let padded =
+              padLow x623 "m" $ fromKVPairs [(Axis "a", 7), (Axis "b", 3)]
+        let paddedShape =
+              fromKVPairs [(Axis "a", 13), (Axis "b", 5), (Axis "c", 3)]
+        [ toTensorTest "access padded" $
+            TensorTest
+              { tensor = padded,
+                shape = Just paddedShape,
+                access =
+                  Just $
+                    fromKVPairs [(Axis "a", 0), (Axis "b", 1), (Axis "c", 2)],
+                expected = Just (TensorElemVal "m")
+              },
+            toTensorTest "access elem" $
+            TensorTest
+              { tensor = padded,
+                shape = Just paddedShape,
+                access =
+                  Just $
+                    fromKVPairs [(Axis "a", 8), (Axis "b", 4), (Axis "c", 0)],
+                expected = Just (TensorElemVal "xa1b1c0")
+              }
+          ],
       testGroup "pad" $ do
         let x623 =
               simpleTensor @SymInteger
@@ -662,9 +691,9 @@ tensorTest =
         let padded =
               pad x623 "m" $
                 PaddingArgs
-                  { padLow = fromKVPairs [(Axis "a", 1)],
-                    padInterior = fromKVPairs [(Axis "a", 2)],
-                    padHigh = fromKVPairs [(Axis "a", 3)]
+                  { lowPad = fromKVPairs [(Axis "a", 1)],
+                    interiorPad = fromKVPairs [(Axis "a", 2)],
+                    highPad = fromKVPairs [(Axis "a", 3)]
                   }
         let paddedShape =
               fromKVPairs [(Axis "a", 20), (Axis "b", 2), (Axis "c", 3)]
@@ -727,9 +756,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 0)],
-                        padInterior = fromKVPairs [(Axis "a", 0)],
-                        padHigh = fromKVPairs [(Axis "a", 0)]
+                      { lowPad = fromKVPairs [(Axis "a", 0)],
+                        interiorPad = fromKVPairs [(Axis "a", 0)],
+                        highPad = fromKVPairs [(Axis "a", 0)]
                       },
                 shape =
                   Just $
@@ -744,9 +773,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 1), (Axis "b", 1)],
-                        padInterior = fromKVPairs [(Axis "a", 2)],
-                        padHigh = fromKVPairs [(Axis "a", 3)]
+                      { lowPad = fromKVPairs [(Axis "a", 1), (Axis "b", 1)],
+                        interiorPad = fromKVPairs [(Axis "a", 2)],
+                        highPad = fromKVPairs [(Axis "a", 3)]
                       },
                 shape =
                   Just $
@@ -761,9 +790,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 1)],
-                        padInterior = fromKVPairs [(Axis "a", 2)],
-                        padHigh = fromKVPairs [(Axis "a", 3), (Axis "b", 2)]
+                      { lowPad = fromKVPairs [(Axis "a", 1)],
+                        interiorPad = fromKVPairs [(Axis "a", 2)],
+                        highPad = fromKVPairs [(Axis "a", 3), (Axis "b", 2)]
                       },
                 shape =
                   Just $
@@ -778,9 +807,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 1), (Axis "d", 2)],
-                        padInterior = fromKVPairs [(Axis "a", 2), (Axis "d", 2)],
-                        padHigh = fromKVPairs [(Axis "a", 3), (Axis "d", 2)]
+                      { lowPad = fromKVPairs [(Axis "a", 1), (Axis "d", 2)],
+                        interiorPad = fromKVPairs [(Axis "a", 2), (Axis "d", 2)],
+                        highPad = fromKVPairs [(Axis "a", 3), (Axis "d", 2)]
                       },
                 shape = Nothing,
                 access = Nothing,
@@ -791,9 +820,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", -2)],
-                        padInterior = fromKVPairs [(Axis "a", 2)],
-                        padHigh = fromKVPairs [(Axis "a", 3)]
+                      { lowPad = fromKVPairs [(Axis "a", -2)],
+                        interiorPad = fromKVPairs [(Axis "a", 2)],
+                        highPad = fromKVPairs [(Axis "a", 3)]
                       },
                 shape =
                   Just $
@@ -808,9 +837,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", -10)],
-                        padInterior = fromKVPairs [(Axis "a", 0)],
-                        padHigh = fromKVPairs [(Axis "a", 3)]
+                      { lowPad = fromKVPairs [(Axis "a", -10)],
+                        interiorPad = fromKVPairs [(Axis "a", 0)],
+                        highPad = fromKVPairs [(Axis "a", 3)]
                       },
                 shape = Nothing,
                 access = Nothing,
@@ -822,9 +851,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", -10)],
-                        padInterior = fromKVPairs [(Axis "a", 0)],
-                        padHigh = fromKVPairs [(Axis "a", 5)]
+                      { lowPad = fromKVPairs [(Axis "a", -10)],
+                        interiorPad = fromKVPairs [(Axis "a", 0)],
+                        highPad = fromKVPairs [(Axis "a", 5)]
                       },
                 shape =
                   Just $
@@ -838,9 +867,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 1)],
-                        padInterior = fromKVPairs [(Axis "a", -1)],
-                        padHigh = fromKVPairs [(Axis "a", 3)]
+                      { lowPad = fromKVPairs [(Axis "a", 1)],
+                        interiorPad = fromKVPairs [(Axis "a", -1)],
+                        highPad = fromKVPairs [(Axis "a", 3)]
                       },
                 shape = Nothing,
                 access = Nothing,
@@ -851,9 +880,9 @@ tensorTest =
               { tensor =
                   pad x623 "m" $
                     PaddingArgs
-                      { padLow = fromKVPairs [(Axis "a", 3)],
-                        padInterior = fromKVPairs [(Axis "a", 2)],
-                        padHigh = fromKVPairs [(Axis "a", -2)]
+                      { lowPad = fromKVPairs [(Axis "a", 3)],
+                        interiorPad = fromKVPairs [(Axis "a", 2)],
+                        highPad = fromKVPairs [(Axis "a", -2)]
                       },
                 shape =
                   Just $
