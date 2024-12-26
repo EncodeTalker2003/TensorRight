@@ -5,50 +5,50 @@ import TensorRight
 
 rule01 :: forall a. NumRule a
 rule01 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  map0 <- newMap "map0" adim0
-  map1 <- newMap "map1" adim1
-  tensor0 <- newTensor @a "tensor0" [adim0 --> map0]
-  tensor1 <- newTensor @a "tensor1" [adim0 --> map0]
-  lhs <- numBinOp Add (broadcast tensor0 [adim1 --> map1]) (broadcast tensor1 [adim1 --> map1])
-  rhs <- broadcast (numBinOp Add tensor0 tensor1) [adim1 --> map1]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  map0 <- newMap "map0" rclass0
+  map1 <- newMap "map1" rclass1
+  tensor0 <- newTensor @a "tensor0" [rclass0 --> map0]
+  tensor1 <- newTensor @a "tensor1" [rclass0 --> map0]
+  lhs <- numBinOp Add (broadcast tensor0 [rclass1 --> map1]) (broadcast tensor1 [rclass1 --> map1])
+  rhs <- broadcast (numBinOp Add tensor0 tensor1) [rclass1 --> map1]
   rewrite "Add(Broadcast(A),Broadcast(B)) ⇒ Broadcast(Add(A,B))" lhs rhs
 
 rule02 :: forall a. NumRule a
 rule02 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  map0 <- newMap "map0" adim0
-  map1 <- newMap "map1" adim1
-  tensor0 <- newTensor @a "tensor0" [adim0 --> map0]
-  tensor1 <- newTensor @a "tensor1" [adim0 --> map0]
-  lhs <- numBinOp Mul (broadcast tensor0 [adim1 --> map1]) (broadcast tensor1 [adim1 --> map1])
-  rhs <- broadcast (numBinOp Mul tensor0 tensor1) [adim1 --> map1]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  map0 <- newMap "map0" rclass0
+  map1 <- newMap "map1" rclass1
+  tensor0 <- newTensor @a "tensor0" [rclass0 --> map0]
+  tensor1 <- newTensor @a "tensor1" [rclass0 --> map0]
+  lhs <- numBinOp Mul (broadcast tensor0 [rclass1 --> map1]) (broadcast tensor1 [rclass1 --> map1])
+  rhs <- broadcast (numBinOp Mul tensor0 tensor1) [rclass1 --> map1]
   rewrite "Mul(Broadcast(A),Broadcast(B)) ⇒ Broadcast(Mul(A,B))" lhs rhs
 
 rule03 :: forall a. AnyDTypeRule a
 rule03 _ = do
-  adim <- newAdim "adim"
-  map <- newMap "map" adim
-  lhsTensor <- constant @a "a" [adim --> map @@ "label1"]
-  rhsTensor <- constant @a "a" [adim --> map @@ "label2"]
+  rclass <- newRClass "rclass"
+  map <- newMap "map" rclass
+  lhsTensor <- constant @a "a" [rclass --> map @@ "label1"]
+  rhsTensor <- constant @a "a" [rclass --> map @@ "label2"]
   lhs <- relabel lhsTensor [ByLabel "label1" --> ByLabel "label2"]
   let rhs = rhsTensor
   rewrite "Transpose(Broadcast(Scalar)) ⇒ Broadcast(Scalar)" lhs rhs
 
 rule04 :: forall a. AnyDTypeRule a
 rule04 _ = do
-  adim <- newAdim "adim"
-  map <- newMap "map" adim
-  lhs <- reverseTensor (constant @a "a" [adim --> map]) [ByAdim adim]
-  rhs <- constant @a "a" [adim --> map]
+  rclass <- newRClass "rclass"
+  map <- newMap "map" rclass
+  lhs <- reverseTensor (constant @a "a" [rclass --> map]) [ByRClass rclass]
+  rhs <- constant @a "a" [rclass --> map]
   rewrite "Reverse(Broadcast(Scalar)) ⇒ Broadcast(Scalar)" lhs rhs
 
 rule05 :: forall a. AnyDTypeRule a
 rule05 _ = do
-  adim <- newAdim "adim"
-  [origSizeMap, newSizeMap, startMap, endMap, strideMap] <- newMaps ["origSizeMap", "newSizeMap", "startMap", "endMap", "strideMap"] adim
-  lhs <- slice (constant @a "a" [adim --> origSizeMap]) [adim --> startMap] [adim --> endMap] [adim --> strideMap]
-  rhs <- constant @a "a" [adim --> newSizeMap]
+  rclass <- newRClass "rclass"
+  [origSizeMap, newSizeMap, startMap, endMap, strideMap] <- newMaps ["origSizeMap", "newSizeMap", "startMap", "endMap", "strideMap"] rclass
+  lhs <- slice (constant @a "a" [rclass --> origSizeMap]) [rclass --> startMap] [rclass --> endMap] [rclass --> strideMap]
+  rhs <- constant @a "a" [rclass --> newSizeMap]
   precondition [startMap] $ \[start] -> start .>= 0
   precondition [strideMap] $ \[stride] -> stride .>= 1
   precondition [origSizeMap, endMap] $ \[origSize, end] -> end .<= origSize
@@ -58,10 +58,10 @@ rule05 _ = do
 
 rule06 :: forall a. AnyDTypeRule a
 rule06 _ = do
-  adim <- newAdim "adim"
-  [origSizeMap, newSizeMap, startMap] <- newMaps ["origSizeMap", "newSizeMap", "startMap"] adim
-  lhs <- dynamicSlice (constant @a "a" [adim --> origSizeMap]) DySlice {start = [adim --> startMap], sizes = [adim --> newSizeMap]}
-  rhs <- constant @a "a" [adim --> newSizeMap]
+  rclass <- newRClass "rclass"
+  [origSizeMap, newSizeMap, startMap] <- newMaps ["origSizeMap", "newSizeMap", "startMap"] rclass
+  lhs <- dynamicSlice (constant @a "a" [rclass --> origSizeMap]) DySlice {start = [rclass --> startMap], sizes = [rclass --> newSizeMap]}
+  rhs <- constant @a "a" [rclass --> newSizeMap]
   precondition [startMap] $ \[start] -> start .>= 0
   precondition [origSizeMap, startMap, newSizeMap] $
     \[origSize, start, newSize] -> start + newSize .<= origSize
@@ -69,22 +69,22 @@ rule06 _ = do
 
 rule07 :: DSLContext Rewrite
 rule07 = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  map0 <- newMap "map0" adim0
-  map1 <- newMap "map1" adim1
-  lhs <- broadcast (iota [adim0 --> map0] (ByAdim adim0)) [adim1 --> map1]
-  rhs <- iota [adim0 --> map0, adim1 --> map1] (ByAdim adim0)
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  map0 <- newMap "map0" rclass0
+  map1 <- newMap "map1" rclass1
+  lhs <- broadcast (iota [rclass0 --> map0] (ByRClass rclass0)) [rclass1 --> map1]
+  rhs <- iota [rclass0 --> map0, rclass1 --> map1] (ByRClass rclass0)
   rewrite "Broadcast(Iota) ⇒ Iota" lhs rhs
 
 rule08 :: forall a. AnyDTypeRule a
 rule08 _ = do
-  [adim0, adim1, adim2] <- newAdims ["adim0", "adim1", "adim2"]
-  map0 <- newMap "map0" adim0
-  map1 <- newMap "map1" adim1
-  map2 <- newMap "map2" adim2
-  tensor <- newTensor @a "tensor" [adim0 --> map0]
-  lhs <- broadcast (broadcast tensor [adim1 --> map1]) [adim2 --> map2]
-  rhs <- broadcast tensor [adim1 --> map1, adim2 --> map2]
+  [rclass0, rclass1, rclass2] <- newRClasses ["rclass0", "rclass1", "rclass2"]
+  map0 <- newMap "map0" rclass0
+  map1 <- newMap "map1" rclass1
+  map2 <- newMap "map2" rclass2
+  tensor <- newTensor @a "tensor" [rclass0 --> map0]
+  lhs <- broadcast (broadcast tensor [rclass1 --> map1]) [rclass2 --> map2]
+  rhs <- broadcast tensor [rclass1 --> map1, rclass2 --> map2]
   rewrite "Broadcast(Broadcast(A, shape, dims), shape2, dims2) ⇒ Broadcast(A, shape3, dims3)" lhs rhs
 
 main :: IO ()

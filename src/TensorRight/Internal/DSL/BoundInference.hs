@@ -51,7 +51,7 @@ import TensorRight.Internal.Core.Axis (Axis (Axis, LabelledAxis), AxisMapLike (f
 import TensorRight.Internal.Core.Tensor (tensorDType)
 import TensorRight.Internal.Core.Verify (VerifyTask (VerifyTask), getTensorWithValidityCondition, rewritingRuleAccess)
 import TensorRight.Internal.DSL.Eval (SymIdentInfo (SymMap, SymTensor), getAxisName)
-import TensorRight.Internal.DSL.Identifier (AdimIdentifier, TensorIdentifier)
+import TensorRight.Internal.DSL.Identifier (RClassIdentifier, TensorIdentifier)
 import TensorRight.Internal.DSL.Shape (AbstractShape (AbstractShape, labelled, unlabelled))
 
 instance PPrint SomeTerm where
@@ -60,18 +60,18 @@ instance PPrint SomeTerm where
       Grisette.Internal.SymPrim.Prim.Internal.Term.pformat t
 
 newtype AnalysisState = AnalysisState
-  { termAdimTensors ::
+  { termRClassTensors ::
       HM.HashMap
         SomeTerm
-        (HS.HashSet AdimIdentifier, HS.HashSet TensorIdentifier)
+        (HS.HashSet RClassIdentifier, HS.HashSet TensorIdentifier)
   }
   deriving (Show, Generic)
   deriving (PPrint) via (Default AnalysisState)
 
-hasAdim :: AnalysisState -> AdimIdentifier -> SomeTerm -> Bool
-hasAdim AnalysisState {..} adim st =
-  case HM.lookup st termAdimTensors of
-    Just (adims, _) -> HS.member adim adims
+hasRClass :: AnalysisState -> RClassIdentifier -> SomeTerm -> Bool
+hasRClass AnalysisState {..} rclass st =
+  case HM.lookup st termRClassTensors of
+    Just (rclasses, _) -> HS.member rclass rclasses
     Nothing -> error "Term not found"
 
 analysisTerm :: SomeTerm -> AnalysisState
@@ -80,104 +80,104 @@ analysisTerm someTerm =
 
 analysisTermState ::
   SomeTerm ->
-  State AnalysisState (HS.HashSet AdimIdentifier, HS.HashSet TensorIdentifier)
+  State AnalysisState (HS.HashSet RClassIdentifier, HS.HashSet TensorIdentifier)
 analysisTermState someTerm = do
-  (adims, tensors) <- analysisTermState' someTerm
+  (rclasses, tensors) <- analysisTermState' someTerm
   modify
     ( \s ->
         s
-          { termAdimTensors =
-              HM.insert someTerm (adims, tensors) (termAdimTensors s)
+          { termRClassTensors =
+              HM.insert someTerm (rclasses, tensors) (termRClassTensors s)
           }
     )
-  return (adims, tensors)
+  return (rclasses, tensors)
 
 analysisTermState' ::
   SomeTerm ->
-  State AnalysisState (HS.HashSet AdimIdentifier, HS.HashSet TensorIdentifier)
+  State AnalysisState (HS.HashSet RClassIdentifier, HS.HashSet TensorIdentifier)
 analysisTermState' (SomeTerm t) = do
   case t of
     ConTerm {} -> return (HS.empty, HS.empty)
     SymTerm _ symb -> case unTypedSymbol symb of
       SimpleSymbol (IdentifierWithInfo _ info) ->
         case cast info of
-          Just (SymMap adim _ _) -> do
-            return (HS.singleton adim, HS.empty)
+          Just (SymMap rclass _ _) -> do
+            return (HS.singleton rclass, HS.empty)
           Just (SymTensor t) -> do
             return (HS.empty, HS.singleton t)
           _ -> error "Unexpected info"
       _ -> return (HS.empty, HS.empty)
     EqTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     ITETerm _ cond t e -> do
-      (condAdims, condTensors) <- analysisTermState $ SomeTerm cond
-      (tAdims, tTensors) <- analysisTermState $ SomeTerm t
-      (eAdims, eTensors) <- analysisTermState $ SomeTerm e
+      (condRClasses, condTensors) <- analysisTermState $ SomeTerm cond
+      (tRClasses, tTensors) <- analysisTermState $ SomeTerm t
+      (eRClasses, eTensors) <- analysisTermState $ SomeTerm e
       return
-        ( condAdims <> tAdims <> eAdims,
+        ( condRClasses <> tRClasses <> eRClasses,
           condTensors <> tTensors <> eTensors
         )
     NotTerm _ t -> analysisTermState $ SomeTerm t
     OrTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     AndTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     AddNumTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     NegNumTerm _ t -> analysisTermState $ SomeTerm t
     MulNumTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     AbsNumTerm _ t -> analysisTermState $ SomeTerm t
     SignumNumTerm _ t -> analysisTermState $ SomeTerm t
     LtOrdTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     LeOrdTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     ApplyTerm _ f args -> do
-      (fAdims, lTensors) <- analysisTermState $ SomeTerm f
-      (argsAdims, rTensors) <- analysisTermState $ SomeTerm args
-      return (fAdims <> argsAdims, lTensors <> rTensors)
+      (fRClasses, lTensors) <- analysisTermState $ SomeTerm f
+      (argsRClasses, rTensors) <- analysisTermState $ SomeTerm args
+      return (fRClasses <> argsRClasses, lTensors <> rTensors)
     DivIntegralTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     ModIntegralTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     QuotIntegralTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     RemIntegralTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     FdivTerm _ l r -> do
-      (lAdims, lTensors) <- analysisTermState $ SomeTerm l
-      (rAdims, rTensors) <- analysisTermState $ SomeTerm r
-      return (lAdims <> rAdims, lTensors <> rTensors)
+      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
+      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
+      return (lRClasses <> rRClasses, lTensors <> rTensors)
     FloatingUnaryTerm _ _ l -> analysisTermState $ SomeTerm l
     _ -> error "Should not happen"
 
 getAllConditions :: AnalysisState -> SomeTerm -> HS.HashSet SomeTerm
 getAllConditions AnalysisState {..} st@(SomeTerm t) =
-  case HM.lookup st termAdimTensors of
-    Just (adims, _) | HS.null adims -> HS.empty
+  case HM.lookup st termRClassTensors of
+    Just (rclasses, _) | HS.null rclasses -> HS.empty
     Just (_, tensors) | HS.null tensors ->
       case cast t of
         Just (_ :: Term Bool) -> HS.singleton st
@@ -312,15 +312,15 @@ groupAccessByTensors = groupBy (on (==) termTensor) . sortOn termTensor
 inferBound ::
   GrisetteSMTConfig ->
   VerifyTask ->
-  HS.HashSet AdimIdentifier ->
-  HS.HashSet AdimIdentifier ->
+  HS.HashSet RClassIdentifier ->
+  HS.HashSet RClassIdentifier ->
   AbstractShape ->
-  IO (HM.HashMap AdimIdentifier Int)
+  IO (HM.HashMap RClassIdentifier Int)
 inferBound
   solverConfig
   (VerifyTask _ lhs rhs pre siRelation _ _ _ _ _ _ _ _ _)
-  nonSingletonAdims
-  singletonAdims
+  nonSingletonRClasses
+  singletonRClasses
   sp = do
     let preCond = pre
     when (preCond == con False) $
@@ -359,47 +359,47 @@ inferBound
     putStrLn $ "# filtered accesses: " <> show (HS.size filteredAccesses)
     let groupedAccesses = groupAccessByTensors $ HS.toList filteredAccesses
 
-    let numHasAdimInGroup :: AdimIdentifier -> [SomeTerm] -> Int
-        numHasAdimInGroup adim = length . filter (hasAdim st adim)
+    let numHasRClassInGroup :: RClassIdentifier -> [SomeTerm] -> Int
+        numHasRClassInGroup rclass = length . filter (hasRClass st rclass)
         factorial :: Int -> Int
         factorial 0 = 1
         factorial n = n * factorial (n - 1)
-        kFromAccess :: AdimIdentifier -> [SomeTerm] -> Int
-        kFromAccess adim group = case numHasAdimInGroup adim group of
+        kFromAccess :: RClassIdentifier -> [SomeTerm] -> Int
+        kFromAccess rclass group = case numHasRClassInGroup rclass group of
           v | v < 2 -> 0
           v -> factorial v `div` 2 `div` factorial (v - 2)
 
-    let kFromAllAccesses adim = sum $ kFromAccess adim <$> groupedAccesses
-    let kForAdim adim =
+    let kFromAllAccesses rclass = sum $ kFromAccess rclass <$> groupedAccesses
+    let kForRClass rclass =
           max 1 $
-            kFromAllAccesses adim
-              + numHasAdimInGroup adim (HS.toList filteredConditions)
+            kFromAllAccesses rclass
+              + numHasRClassInGroup rclass (HS.toList filteredConditions)
     return $
       HM.fromList $
-        ( (\adim -> (adim, kForAdim adim))
-            <$> HS.toList (nonSingletonAdims `HS.difference` singletonAdims)
+        ( (\rclass -> (rclass, kForRClass rclass))
+            <$> HS.toList (nonSingletonRClasses `HS.difference` singletonRClasses)
         )
-          <> ((,1) <$> HS.toList singletonAdims)
+          <> ((,1) <$> HS.toList singletonRClasses)
 
 abstractShapeAccess :: AbstractShape -> Indices
 abstractShapeAccess AbstractShape {..} = do
-  fromHashMap $ unlabelledAdimAccesses <> labelledAdimAccess
+  fromHashMap $ unlabelledRClassAccesses <> labelledRClassAccess
   where
-    unlabelledAdimAccesses =
+    unlabelledRClassAccesses =
       HM.fromList $
-        ( \adim ->
-            ( Axis $ getAxisName adim 0,
-              ssym $ withInfo "access" $ SymMap adim 0 "#accnolabel"
+        ( \rclass ->
+            ( Axis $ getAxisName rclass 0,
+              ssym $ withInfo "access" $ SymMap rclass 0 "#accnolabel"
             )
         )
           <$> HS.toList unlabelled
-    labelledAdimAccess =
+    labelledRClassAccess =
       HM.fromList $
-        ( \(label, adim) ->
-            ( LabelledAxis label $ getAxisName adim 0,
+        ( \(label, rclass) ->
+            ( LabelledAxis label $ getAxisName rclass 0,
               ssym $
                 withInfo "access" $
-                  SymMap adim 0 $
+                  SymMap rclass 0 $
                     fromString $
                       T.unpack label
             )

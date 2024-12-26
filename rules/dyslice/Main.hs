@@ -5,35 +5,35 @@ import TensorRight
 
 rule01 :: forall a. AnyDTypeRule a
 rule01 _ = do
-  adim <- newAdim "adim"
-  [adimSize, adimStart, adimLength, adimEnd, adimStride] <-
-    newMaps ["adimSize", "adimStart", "adimLength", "adimEnd", "adimStride"] adim
+  rclass <- newRClass "rclass"
+  [rclassSize, rclassStart, rclassLength, rclassEnd, rclassStride] <-
+    newMaps ["rclassSize", "rclassStart", "rclassLength", "rclassEnd", "rclassStride"] rclass
 
-  tensor <- newTensor @a "tensor" [adim --> adimSize]
+  tensor <- newTensor @a "tensor" [rclass --> rclassSize]
 
   lhs <-
     dynamicSlice tensor $
-      DySlice {start = [adim --> adimStart], sizes = [adim --> adimLength]}
+      DySlice {start = [rclass --> rclassStart], sizes = [rclass --> rclassLength]}
   rhs <-
     slice tensor $
       Slice
-        { start = [adim --> adimStart],
-          end = [adim --> adimEnd],
-          strides = [adim --> adimStride]
+        { start = [rclass --> rclassStart],
+          end = [rclass --> rclassEnd],
+          strides = [rclass --> rclassStride]
         }
 
-  precondition [adimStride] $ \[adimStride] -> adimStride .== 1
-  precondition [adimEnd, adimStart, adimLength] $
-    \[adimEnd, adimStart, adimLength] -> adimEnd .== adimStart + adimLength
+  precondition [rclassStride] $ \[rclassStride] -> rclassStride .== 1
+  precondition [rclassEnd, rclassStart, rclassLength] $
+    \[rclassEnd, rclassStart, rclassLength] -> rclassEnd .== rclassStart + rclassLength
 
   rewrite "DynamicSlice(A) ⇒ Slice(A)" lhs rhs
 
 rule02 :: forall a. AnyDTypeRule a
 rule02 _ = do
-  adim <- newAdim "adim"
-  [sizeMap, startMap, sliceSizeMap] <- newMaps ["sizeMap", "startMap", "sliceSizeMap"] adim
-  tensor <- newTensor @a "tensor" [adim --> sizeMap]
-  lhs <- dynamicSlice tensor DySlice {start = [adim --> startMap], sizes = [adim --> sliceSizeMap]}
+  rclass <- newRClass "rclass"
+  [sizeMap, startMap, sliceSizeMap] <- newMaps ["sizeMap", "startMap", "sliceSizeMap"] rclass
+  tensor <- newTensor @a "tensor" [rclass --> sizeMap]
+  lhs <- dynamicSlice tensor DySlice {start = [rclass --> startMap], sizes = [rclass --> sliceSizeMap]}
   let rhs = tensor
   precondition [startMap] $ \[start] -> start .== 0
   precondition [sliceSizeMap, sizeMap] $ \[sliceSize, size] -> sliceSize .== size
@@ -41,12 +41,12 @@ rule02 _ = do
 
 rule03 :: forall a. AnyDTypeRule a
 rule03 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  [sizeMap0, startMap0, sliceSizeMap0] <- newMaps ["sizeMap0", "startMap0", "sliceSizeMap0"] adim0
-  [sizeMap1, startMap1, sliceSizeMap1] <- newMaps ["sizeMap1", "startMap1", "sliceSizeMap1"] adim1
-  tensor <- newTensor @a "tensor" [adim0 --> sizeMap0]
-  lhs <- dynamicSlice (broadcast tensor [adim1 --> sizeMap1]) DySlice {start = [adim0 --> startMap0, adim1 --> startMap1], sizes = [adim0 --> sliceSizeMap0, adim1 --> sliceSizeMap1]}
-  rhs <- broadcast (dynamicSlice tensor DySlice {start = [adim0 --> startMap0], sizes = [adim0 --> sliceSizeMap0]}) [adim1 --> sliceSizeMap1]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  [sizeMap0, startMap0, sliceSizeMap0] <- newMaps ["sizeMap0", "startMap0", "sliceSizeMap0"] rclass0
+  [sizeMap1, startMap1, sliceSizeMap1] <- newMaps ["sizeMap1", "startMap1", "sliceSizeMap1"] rclass1
+  tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0]
+  lhs <- dynamicSlice (broadcast tensor [rclass1 --> sizeMap1]) DySlice {start = [rclass0 --> startMap0, rclass1 --> startMap1], sizes = [rclass0 --> sliceSizeMap0, rclass1 --> sliceSizeMap1]}
+  rhs <- broadcast (dynamicSlice tensor DySlice {start = [rclass0 --> startMap0], sizes = [rclass0 --> sliceSizeMap0]}) [rclass1 --> sliceSizeMap1]
   precondition [startMap1] $
     \[start1] -> start1 .>= 0
   precondition [sizeMap1, startMap1, sliceSizeMap1] $
@@ -55,20 +55,20 @@ rule03 _ = do
 
 rule04 :: forall a. AnyDTypeRule a
 rule04 _ = do
-  adim <- newAdim "adim"
-  [sizeMap, startMap, sliceSizeMap] <- newMaps ["sizeMap", "startMap", "sliceSizeMap"] adim
-  tensor <- newTensor @a "tensor" [adim --> sizeMap @@ "label1"]
+  rclass <- newRClass "rclass"
+  [sizeMap, startMap, sliceSizeMap] <- newMaps ["sizeMap", "startMap", "sliceSizeMap"] rclass
+  tensor <- newTensor @a "tensor" [rclass --> sizeMap @@ "label1"]
   lhs <- relabel (dynamicSlice tensor DySlice {start = [ByLabel "label1" --> startMap], sizes = [ByLabel "label1" --> sliceSizeMap]}) [ByLabel "label1" --> ByLabel "label2"]
   rhs <- dynamicSlice (relabel tensor [ByLabel "label1" --> ByLabel "label2"]) DySlice {start = [ByLabel "label2" --> startMap], sizes = [ByLabel "label2" --> sliceSizeMap]}
   rewrite "DynamicSlice(Transpose(A),...) ⇒ Transpose(DynamicSlice(A,...))" lhs rhs
 
 rule05 :: forall a. AnyDTypeRule a
 rule05 _ = do
-  adim <- newAdim "adim"
-  [sizeMap, startMap1, startMap2, startMap3, sliceSizeMap1, sliceSizeMap2, sliceSizeMap3] <- newMaps ["sizeMap", "startMap1", "startMap2", "startMap3", "sliceSizeMap1", "sliceSizeMap2", "sliceSizeMap3"] adim
-  tensor <- newTensor @a "tensor" [adim --> sizeMap]
-  lhs <- dynamicSlice (dynamicSlice tensor DySlice {start = [adim --> startMap1], sizes = [adim --> sliceSizeMap1]}) DySlice {start = [adim --> startMap2], sizes = [adim --> sliceSizeMap2]}
-  rhs <- dynamicSlice tensor DySlice {start = [adim --> startMap3], sizes = [adim --> sliceSizeMap3]}
+  rclass <- newRClass "rclass"
+  [sizeMap, startMap1, startMap2, startMap3, sliceSizeMap1, sliceSizeMap2, sliceSizeMap3] <- newMaps ["sizeMap", "startMap1", "startMap2", "startMap3", "sliceSizeMap1", "sliceSizeMap2", "sliceSizeMap3"] rclass
+  tensor <- newTensor @a "tensor" [rclass --> sizeMap]
+  lhs <- dynamicSlice (dynamicSlice tensor DySlice {start = [rclass --> startMap1], sizes = [rclass --> sliceSizeMap1]}) DySlice {start = [rclass --> startMap2], sizes = [rclass --> sliceSizeMap2]}
+  rhs <- dynamicSlice tensor DySlice {start = [rclass --> startMap3], sizes = [rclass --> sliceSizeMap3]}
   precondition [startMap1, startMap2, startMap3] $
     \[start1, start2, start3] -> start3 .== start1 + start2
   precondition [sliceSizeMap2, sliceSizeMap3] $
@@ -83,18 +83,18 @@ rule05 _ = do
 
 rule06 :: DSLContext Rewrite
 rule06 = do
-  adim <- newAdim "adim"
-  [sizeMap, startMap, lengthMap] <- newMaps ["sizeMap", "startMap", "lengthMap"] adim
+  rclass <- newRClass "rclass"
+  [sizeMap, startMap, lengthMap] <- newMaps ["sizeMap", "startMap", "lengthMap"] rclass
 
-  lhs <- dynamicSlice (iota [adim --> sizeMap] (ByAdim adim)) $
+  lhs <- dynamicSlice (iota [rclass --> sizeMap] (ByRClass rclass)) $
           DySlice
           {
-            start = [adim --> startMap],
-            sizes = [adim --> lengthMap]
+            start = [rclass --> startMap],
+            sizes = [rclass --> lengthMap]
           }
-  rhsSize <- newConstMap "size" 1 adim
+  rhsSize <- newConstMap "size" 1 rclass
   -- Cannot express rule since we need a precondition on "a"
-  rhs <- constant @TensorInt "a" [adim --> rhsSize]
+  rhs <- constant @TensorInt "a" [rclass --> rhsSize]
   rewrite "DynamicSlice(Iota) ⇒ index" lhs rhs
 
 main :: IO ()

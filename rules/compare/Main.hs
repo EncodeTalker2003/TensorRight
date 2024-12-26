@@ -6,11 +6,11 @@ import TensorRight
 
 constructRule :: forall a. T.Text -> CompareOp -> Bool -> NumRule a
 constructRule name op value _ = do
-  adim <- newAdim "adim"
-  map <- newMap "map" adim
-  tensor <- newTensor @a "tensor" [adim --> map]
+  rclass <- newRClass "rclass"
+  map <- newMap "map" rclass
+  tensor <- newTensor @a "tensor" [rclass --> map]
   lhs <- compareOp op tensor tensor
-  rhs <- constant @SymBool (con value) [adim --> map]
+  rhs <- constant @SymBool (con value) [rclass --> map]
   rewrite name lhs rhs
 
 rule01 :: forall a. NumRule a

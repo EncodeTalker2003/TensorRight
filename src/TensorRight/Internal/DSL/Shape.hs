@@ -10,16 +10,16 @@
 
 module TensorRight.Internal.DSL.Shape
   ( TensorShape (..),
-    AdimRef (..),
-    AdimRefSet,
+    RClassRef (..),
+    RClassRefSet,
     AbstractShape (..),
     toAbstractShape,
     TensorShapeLike (toTensorShape),
     TensorShapeDesc (..),
     abstractShapeAllRefs,
-    removeAdim,
-    getAdimByAdimRef,
-    addAdimByAdimRef,
+    removeRClass,
+    getRClassByRClassRef,
+    addRClassByRClassRef,
     concatAbstractShape,
     restrictAbstractShape,
   )
@@ -34,24 +34,24 @@ import Data.List (sortBy)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Grisette (Default (Default), PPrint (pformat, pformatPrec), TryMerge)
-import TensorRight.Internal.DSL.Identifier (AdimIdentifier, Label, MapIdentifier)
+import TensorRight.Internal.DSL.Identifier (RClassIdentifier, Label, MapIdentifier)
 import TensorRight.Internal.DSL.Syntax (ArrowSyntax ((-->)), AtSyntax ((@@)))
 import TensorRight.Internal.Util.Error (Error, assert)
 import TensorRight.Internal.Util.Pretty (encloseList, prettyWithConstructor)
 
--- | Reference to an adim. An adim may be labelled or not labelled.
-data AdimRef
-  = ByAdim AdimIdentifier
+-- | Reference to an rclass. An rclass may be labelled or not labelled.
+data RClassRef
+  = ByRClass RClassIdentifier
   | ByLabel Label
   deriving (Generic, Eq, Ord, Show)
   deriving (Hashable)
-  deriving (PPrint) via (Default AdimRef)
+  deriving (PPrint) via (Default RClassRef)
 
-type AdimRefSet = HS.HashSet AdimRef
+type RClassRefSet = HS.HashSet RClassRef
 
 data TensorShape = TensorShape
-  { labelled :: HM.HashMap Label (AdimIdentifier, MapIdentifier),
-    unlabelled :: HM.HashMap AdimIdentifier MapIdentifier
+  { labelled :: HM.HashMap Label (RClassIdentifier, MapIdentifier),
+    unlabelled :: HM.HashMap RClassIdentifier MapIdentifier
   }
   deriving (Show, Generic)
 
@@ -70,48 +70,48 @@ instance PPrint TensorShape where
       n
       "TensorShape"
       [ encloseList "{" "}" "," $
-          [ prettyLabelled label adim map
-            | (label, (adim, map)) <- HM.toList labelled
+          [ prettyLabelled label rclass map
+            | (label, (rclass, map)) <- HM.toList labelled
           ]
-            ++ [ prettyUnlabelled adim map
-                 | (adim, map) <- HM.toList unlabelled
+            ++ [ prettyUnlabelled rclass map
+                 | (rclass, map) <- HM.toList unlabelled
                ]
       ]
     where
-      prettyLabelled label adim map =
-        pformat adim <> " -> " <> pformat map <> " @@ " <> pformat label
-      prettyUnlabelled adim map = pformat adim <> " -> " <> pformat map
+      prettyLabelled label rclass map =
+        pformat rclass <> " -> " <> pformat map <> " @@ " <> pformat label
+      prettyUnlabelled rclass map = pformat rclass <> " -> " <> pformat map
 
 data PartialTensorShapeDesc
-  = PartialTensorShapeDesc AdimIdentifier MapIdentifier
+  = PartialTensorShapeDesc RClassIdentifier MapIdentifier
 
 data TensorShapeDesc
-  = UnlabelledDesc AdimIdentifier MapIdentifier
-  | LabelledDesc Label AdimIdentifier MapIdentifier
+  = UnlabelledDesc RClassIdentifier MapIdentifier
+  | LabelledDesc Label RClassIdentifier MapIdentifier
 
-instance ArrowSyntax AdimIdentifier MapIdentifier PartialTensorShapeDesc where
+instance ArrowSyntax RClassIdentifier MapIdentifier PartialTensorShapeDesc where
   (-->) = PartialTensorShapeDesc
 
-instance ArrowSyntax AdimIdentifier MapIdentifier TensorShapeDesc where
+instance ArrowSyntax RClassIdentifier MapIdentifier TensorShapeDesc where
   (-->) = UnlabelledDesc
 
 instance AtSyntax PartialTensorShapeDesc Label TensorShapeDesc where
-  PartialTensorShapeDesc adim map @@ label = LabelledDesc label adim map
+  PartialTensorShapeDesc rclass map @@ label = LabelledDesc label rclass map
 
 getTensorShape' ::
   (MonadError Error m) => [TensorShapeDesc] -> m TensorShape
 getTensorShape' [] = return $ TensorShape HM.empty HM.empty
-getTensorShape' (UnlabelledDesc adim map : rest) = do
+getTensorShape' (UnlabelledDesc rclass map : rest) = do
   TensorShape labelled unlabelled <- getTensorShape' rest
-  when (HM.member adim unlabelled) $ throwError "Duplicate adim without labels"
+  when (HM.member rclass unlabelled) $ throwError "Duplicate rclass without labels"
   return $
-    TensorShape labelled (HM.insert adim map unlabelled)
-getTensorShape' (LabelledDesc label adim map : rest) = do
+    TensorShape labelled (HM.insert rclass map unlabelled)
+getTensorShape' (LabelledDesc label rclass map : rest) = do
   TensorShape labelled unlabelled <- getTensorShape' rest
   when (HM.member label labelled) $ throwError "Duplicate label"
-  when (HM.member adim unlabelled) $
-    throwError "Labelled adim already present as unlabelled"
-  return $ TensorShape (HM.insert label (adim, map) labelled) unlabelled
+  when (HM.member rclass unlabelled) $
+    throwError "Labelled rclass already present as unlabelled"
+  return $ TensorShape (HM.insert label (rclass, map) labelled) unlabelled
 
 getTensorShape ::
   (MonadError Error m) => [TensorShapeDesc] -> m TensorShape
@@ -136,8 +136,8 @@ instance TensorShapeLike [TensorShapeDesc] where
   toTensorShape = getTensorShape
 
 data AbstractShape = AbstractShape
-  { labelled :: HM.HashMap Label AdimIdentifier,
-    unlabelled :: HS.HashSet AdimIdentifier
+  { labelled :: HM.HashMap Label RClassIdentifier,
+    unlabelled :: HS.HashSet RClassIdentifier
   }
   deriving (Show)
 
@@ -150,11 +150,11 @@ instance PPrint AbstractShape where
       n
       "AbstractShape"
       [ encloseList "{" "}" "," $
-          [prettyLabelled label adim | (label, adim) <- HM.toList labelled]
-            ++ [pformat adim | adim <- HS.toList unlabelled]
+          [prettyLabelled label rclass | (label, rclass) <- HM.toList labelled]
+            ++ [pformat rclass | rclass <- HS.toList unlabelled]
       ]
     where
-      prettyLabelled label adim = pformat adim <> " @@ " <> pformat label
+      prettyLabelled label rclass = pformat rclass <> " @@ " <> pformat label
 
 toAbstractShape :: TensorShape -> AbstractShape
 toAbstractShape (TensorShape labelled unlabelled) =
@@ -163,48 +163,48 @@ toAbstractShape (TensorShape labelled unlabelled) =
       unlabelled = HM.keysSet unlabelled
     }
 
-abstractShapeAllRefs :: AbstractShape -> HS.HashSet AdimRef
+abstractShapeAllRefs :: AbstractShape -> HS.HashSet RClassRef
 abstractShapeAllRefs (AbstractShape labelled unlabelled) =
-  HS.map ByAdim unlabelled `HS.union` HS.map ByLabel (HM.keysSet labelled)
+  HS.map ByRClass unlabelled `HS.union` HS.map ByLabel (HM.keysSet labelled)
 
-removeAdim ::
+removeRClass ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
-  AdimRef ->
+  RClassRef ->
   m AbstractShape
-removeAdim AbstractShape {..} (ByAdim adim) = do
-  assert "Adim not exist" $ HS.member adim unlabelled
-  return $ AbstractShape labelled (HS.delete adim unlabelled)
-removeAdim AbstractShape {..} (ByLabel label) = do
+removeRClass AbstractShape {..} (ByRClass rclass) = do
+  assert "RClass not exist" $ HS.member rclass unlabelled
+  return $ AbstractShape labelled (HS.delete rclass unlabelled)
+removeRClass AbstractShape {..} (ByLabel label) = do
   assert "Label not exist" $ HM.member label labelled
   return $ AbstractShape (HM.delete label labelled) unlabelled
 
-getAdimByAdimRef ::
+getRClassByRClassRef ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
-  AdimRef ->
-  m AdimIdentifier
-getAdimByAdimRef AbstractShape {..} (ByAdim adim) = do
-  assert "Adim not exist" $ HS.member adim unlabelled
-  return adim
-getAdimByAdimRef AbstractShape {..} (ByLabel label) =
+  RClassRef ->
+  m RClassIdentifier
+getRClassByRClassRef AbstractShape {..} (ByRClass rclass) = do
+  assert "RClass not exist" $ HS.member rclass unlabelled
+  return rclass
+getRClassByRClassRef AbstractShape {..} (ByLabel label) =
   case HM.lookup label labelled of
     Nothing -> throwError "Label not exist"
-    Just adim -> return adim
+    Just rclass -> return rclass
 
-addAdimByAdimRef ::
+addRClassByRClassRef ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
-  AdimRef ->
-  AdimIdentifier ->
+  RClassRef ->
+  RClassIdentifier ->
   m AbstractShape
-addAdimByAdimRef AbstractShape {..} (ByAdim adim) adim' = do
-  assert "Adim already exist" $ not $ HS.member adim unlabelled
-  assert "If adding by adim itself, then adim must be the same" $ adim == adim'
-  return $ AbstractShape labelled (HS.insert adim' unlabelled)
-addAdimByAdimRef AbstractShape {..} (ByLabel label) adim = do
+addRClassByRClassRef AbstractShape {..} (ByRClass rclass) rclass' = do
+  assert "RClass already exist" $ not $ HS.member rclass unlabelled
+  assert "If adding by rclass itself, then rclass must be the same" $ rclass == rclass'
+  return $ AbstractShape labelled (HS.insert rclass' unlabelled)
+addRClassByRClassRef AbstractShape {..} (ByLabel label) rclass = do
   assert "Label already exist" $ not $ HM.member label labelled
-  return $ AbstractShape (HM.insert label adim labelled) unlabelled
+  return $ AbstractShape (HM.insert label rclass labelled) unlabelled
 
 concatAbstractShape ::
   (MonadError T.Text m, TryMerge m) =>
@@ -214,14 +214,14 @@ concatAbstractShape ::
 concatAbstractShape
   (AbstractShape l1 u1)
   (AbstractShape l2 u2) = do
-    assert "Labelled adim overlap" $ HM.null $ HM.intersection l1 l2
-    assert "Unlabelled adim overlap" $ HS.null $ HS.intersection u1 u2
-    let newUnlabelledAdims = u1 `HS.union` u2
+    assert "Labelled rclass overlap" $ HM.null $ HM.intersection l1 l2
+    assert "Unlabelled rclass overlap" $ HS.null $ HS.intersection u1 u2
+    let newUnlabelledRClasses = u1 `HS.union` u2
     let newLabelled = l1 `HM.union` l2
-    let newLabelledAdims = HS.fromList $ HM.elems newLabelled
-    assert "Labelled adim overlap with unlabelled" $
+    let newLabelledRClasses = HS.fromList $ HM.elems newLabelled
+    assert "Labelled rclass overlap with unlabelled" $
       HS.null $
-        HS.intersection newUnlabelledAdims newLabelledAdims
+        HS.intersection newUnlabelledRClasses newLabelledRClasses
     let newAbstractShape =
           AbstractShape
             (l1 `HM.union` l2)
@@ -231,24 +231,24 @@ concatAbstractShape
 restrictAbstractShape ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
-  AdimRefSet ->
+  RClassRefSet ->
   m AbstractShape
-restrictAbstractShape AbstractShape {..} adims = do
+restrictAbstractShape AbstractShape {..} rclasses = do
   let newLabelled =
         HM.filterWithKey (\k _ -> k `HS.member` byLabel) labelled
-  let newUnlabelled = HS.intersection unlabelled byAdim
+  let newUnlabelled = HS.intersection unlabelled byRClass
   assert "restrictAbstractShape: some label does not exist" $
     HS.size byLabel == HM.size newLabelled
-  assert "restrictAbstractShape: some adim does not exist" $
-    HS.size byAdim == HS.size newUnlabelled
+  assert "restrictAbstractShape: some rclass does not exist" $
+    HS.size byRClass == HS.size newUnlabelled
   return $ AbstractShape newLabelled newUnlabelled
   where
     byLabel' [] = []
     byLabel' (ByLabel label : as) = label : byLabel' as
     byLabel' (_ : as) = byLabel' as
-    byLabel = HS.fromList $ byLabel' $ HS.toList adims
+    byLabel = HS.fromList $ byLabel' $ HS.toList rclasses
 
-    byAdim' [] = []
-    byAdim' (ByAdim adim : as) = adim : byAdim' as
-    byAdim' (_ : as) = byAdim' as
-    byAdim = HS.fromList $ byAdim' $ HS.toList adims
+    byRClass' [] = []
+    byRClass' (ByRClass rclass : as) = rclass : byRClass' as
+    byRClass' (_ : as) = byRClass' as
+    byRClass = HS.fromList $ byRClass' $ HS.toList rclasses

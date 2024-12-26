@@ -34,30 +34,30 @@ def parse_file(lines: Sequence[str]) -> list[Rule]:
     The file looks like this:
     ====> Slice(Concat(A,B), A.size, A.size+B.size) ⇒ B
     >>> Bool
-    [INFO-Bool]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+    [INFO-Bool]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
     [INFO-Bool]: Number of bounded verification tasks: 1
     [SUCCESS-Bool]: [0.12387501999910455s] Verification succeeded.
     >>> Int
-    [INFO-Int]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+    [INFO-Int]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
     [INFO-Int]: Number of bounded verification tasks: 1
     [SUCCESS-Int]: [0.11165066000830848s] Verification succeeded.
     >>> Real
-    [INFO-Real]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+    [INFO-Real]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
     [INFO-Real]: Number of bounded verification tasks: 1
     [SUCCESS-Real]: [0.106301934007206s] Verification succeeded.
     >>> Overall
     [SUCCESS-Overall]: [0.34182761401461903s] Verification succeeded.
     ====> Slice(Broadcast(A)) ⇒ Broadcast(A)
     >>> Bool
-    [INFO-Bool]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+    [INFO-Bool]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
     [INFO-Bool]: Number of bounded verification tasks: 1
     [SUCCESS-Bool]: [0.34009405800316017s] Verification succeeded.
     >>> Int
-    [INFO-Int]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+    [INFO-Int]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
     [INFO-Int]: Number of bounded verification tasks: 1
     [SUCCESS-Int]: [0.23800732199742924s] Verification succeeded.
     >>> Real
-    [INFO-Real]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+    [INFO-Real]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
     [INFO-Real]: Number of bounded verification tasks: 1
     [SUCCESS-Real]: [0.26108629700320307s] Verification succeeded.
     >>> Overall
@@ -122,30 +122,30 @@ def parse_file(lines: Sequence[str]) -> list[Rule]:
 
 sample = """====> Slice(Concat(A,B), A.size, A.size+B.size) ⇒ B
 >>> Bool
-[INFO-Bool]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+[INFO-Bool]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
 [INFO-Bool]: Number of bounded verification tasks: 1
 [SUCCESS-Bool]: [0.12387501999910455s] Verification succeeded.
 >>> Int
-[INFO-Int]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+[INFO-Int]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
 [INFO-Int]: Number of bounded verification tasks: 1
 [SUCCESS-Int]: [0.11165066000830848s] Verification succeeded.
 >>> Real
-[INFO-Real]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+[INFO-Real]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
 [INFO-Real]: Number of bounded verification tasks: 1
 [SUCCESS-Real]: [0.106301934007206s] Verification succeeded.
 >>> Overall
 [SUCCESS-Overall]: [0.34182761401461903s] Verification succeeded.
 ====> Slice(Broadcast(A)) ⇒ Broadcast(A)
 >>> Bool
-[INFO-Bool]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+[INFO-Bool]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
 [INFO-Bool]: Number of bounded verification tasks: 1
 [SUCCESS-Bool]: [0.34009405800316017s] Verification succeeded.
 >>> Int
-[INFO-Int]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+[INFO-Int]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
 [INFO-Int]: Number of bounded verification tasks: 1
 [SUCCESS-Int]: [0.23800732199742924s] Verification succeeded.
 >>> Real
-[INFO-Real]: Inferred bounds: fromList [(adim1,1),(adim0,1)]
+[INFO-Real]: Inferred bounds: fromList [(rclass1,1),(rclass0,1)]
 [INFO-Real]: Number of bounded verification tasks: 1
 [SUCCESS-Real]: [0.26108629700320307s] Verification succeeded.
 >>> Overall

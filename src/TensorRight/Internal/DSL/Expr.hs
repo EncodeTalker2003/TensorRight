@@ -30,12 +30,12 @@ module TensorRight.Internal.DSL.Expr
     exprId,
     internWithCheck,
     internExpr,
-    checkMapHasAdim,
+    checkMapHasRClass,
     checkParamsWellFormed,
     validTensorShape,
     monitorExprOnFailure,
     monitorMapOnFailure,
-    getAdimByMap,
+    getRClassByMap,
     rewrite,
   )
 where
@@ -72,21 +72,21 @@ import TensorRight.Internal.Core.Tensor.Typed
   )
 import TensorRight.Internal.DSL.Condition (Condition)
 import TensorRight.Internal.DSL.Identifier
-  ( AdimIdentifier,
+  ( RClassIdentifier,
     MapIdentifier,
     TensorIdentifier,
   )
 import TensorRight.Internal.DSL.Shape
   ( AbstractShape,
-    AdimRef,
+    RClassRef,
     TensorShape (TensorShape, labelled, unlabelled),
-    getAdimByAdimRef,
+    getRClassByRClassRef,
   )
 import TensorRight.Internal.Util.Error (Error)
 import TensorRight.Internal.Util.Pretty (gprettyParen, prettyWithConstructor)
 import TensorRight.Internal.Core.Tensor.TensorInt (IsTensorNum, TensorNum)
 
-type Params = HM.HashMap AdimRef MapIdentifier
+type Params = HM.HashMap RClassRef MapIdentifier
 
 data PaddingArgsExpr = PaddingArgsExpr
   { low :: Params,
@@ -98,9 +98,9 @@ data PaddingArgsExpr = PaddingArgsExpr
   deriving (PPrint) via (Default PaddingArgsExpr)
 
 data ConvConfigArgsExpr = ConvConfigArgsExpr
-  { batchAdims :: [AdimRef],
-    featureAdims :: [AdimRef],
-    outputFeatureAdims :: [AdimRef],
+  { batchRClasses :: [RClassRef],
+    featureRClasses :: [RClassRef],
+    outputFeatureRClasses :: [RClassRef],
     strides :: Params,
     contractingSIMaps :: Params
   }
@@ -161,7 +161,7 @@ data ExprDescription
         _extendedShape :: TensorShape
       }
   | ConstantDescription {_elem :: Elem, _shape :: TensorShape}
-  | IotaDescription {_shape :: TensorShape, _axis :: AdimRef}
+  | IotaDescription {_shape :: TensorShape, _axis :: RClassRef}
   | SliceDescription
       { _expr :: Int,
         _slice :: SliceArgsExpr
@@ -185,14 +185,14 @@ data ExprDescription
         _update :: Int,
         _start :: Params
       }
-  | ConcatDescription {_lhs :: Int, _rhs :: Int, _axis :: AdimRef}
-  | ConcatListDescription {_exprs :: [Int], _axis :: AdimRef}
-  | RelabelDescription {_expr :: Int, _relabelMap :: HM.HashMap AdimRef AdimRef}
+  | ConcatDescription {_lhs :: Int, _rhs :: Int, _axis :: RClassRef}
+  | ConcatListDescription {_exprs :: [Int], _axis :: RClassRef}
+  | RelabelDescription {_expr :: Int, _relabelMap :: HM.HashMap RClassRef RClassRef}
   | DotDescription
       { _lhs :: Int,
         _rhs :: Int,
-        _constractionSIMaps :: HM.HashMap AdimRef MapIdentifier,
-        _batchAdims :: [AdimRef]
+        _constractionSIMaps :: HM.HashMap RClassRef MapIdentifier,
+        _batchRClasses :: [RClassRef]
       }
   | ConvBaseDescription
       { _input :: Int,
@@ -211,12 +211,12 @@ data ExprDescription
         _expr :: Int,
         _imax :: Elem
       }
-  | ReverseTensorDescription {_expr :: Int, _axes :: [AdimRef]}
+  | ReverseTensorDescription {_expr :: Int, _axes :: [RClassRef]}
   | SelectDescription {_cond :: Int, _true :: Int, _false :: Int}
   | ReshapeDegenerateDescription
       { _expr :: Int,
-        _introAxes :: [(AdimRef, AdimIdentifier)],
-        _elimAxes :: [AdimRef]
+        _introAxes :: [(RClassRef, RClassIdentifier)],
+        _elimAxes :: [RClassRef]
       }
   deriving (Generic, Eq, Show)
   deriving (Hashable)
@@ -231,10 +231,10 @@ data UExpr
   | UCompareOp {_cop :: CompareOp, _lhs :: Expr, _rhs :: Expr}
   | UNumUnaryOp {_iuop :: NumUnaryOp, _expr :: Expr}
   | UBoolUnaryOp {_buop :: BoolUnaryOp, _expr :: Expr}
-  | UReduce {_expr :: Expr, _sikeys :: HM.HashMap AdimRef MapIdentifier}
+  | UReduce {_expr :: Expr, _sikeys :: HM.HashMap RClassRef MapIdentifier}
   | UBroadcast {_expr :: Expr, _extendedShape :: TensorShape}
   | UConstant {_elem :: Elem, _shape :: TensorShape}
-  | UIota {_shape :: TensorShape, _axis :: AdimRef}
+  | UIota {_shape :: TensorShape, _axis :: RClassRef}
   | USlice {_expr :: Expr, _slice :: SliceArgsExpr}
   | UPad
       { _expr :: Expr,
@@ -248,14 +248,14 @@ data UExpr
       }
   | UDynamicSlice {_expr :: Expr, _dySlice :: DySliceArgsExpr}
   | UDynamicUpdateSlice {_expr :: Expr, _update :: Expr, _start :: Params}
-  | UConcat {_lhs :: Expr, _rhs :: Expr, _axis :: AdimRef}
-  | UConcatList {_exprs :: [Expr], _axis :: AdimRef}
-  | URelabel {_expr :: Expr, _relabelMap :: HM.HashMap AdimRef AdimRef}
+  | UConcat {_lhs :: Expr, _rhs :: Expr, _axis :: RClassRef}
+  | UConcatList {_exprs :: [Expr], _axis :: RClassRef}
+  | URelabel {_expr :: Expr, _relabelMap :: HM.HashMap RClassRef RClassRef}
   | UDot
       { _lhs :: Expr,
         _rhs :: Expr,
-        _constractionSIMaps :: HM.HashMap AdimRef MapIdentifier,
-        _batchAdims :: [AdimRef]
+        _constractionSIMaps :: HM.HashMap RClassRef MapIdentifier,
+        _batchRClasses :: [RClassRef]
       }
   | UConvBase
       { _input :: Expr,
@@ -274,12 +274,12 @@ data UExpr
         _expr :: Expr,
         _imax :: Elem
       }
-  | UReverseTensor {_expr :: Expr, _axes :: [AdimRef]}
+  | UReverseTensor {_expr :: Expr, _axes :: [RClassRef]}
   | USelect {_cond :: Expr, _true :: Expr, _false :: Expr}
   | UReshapeDegenerate
       { _expr :: Expr,
-        _introAxes :: [(AdimRef, AdimIdentifier)],
-        _elimAxes :: [AdimRef]
+        _introAxes :: [(RClassRef, RClassIdentifier)],
+        _elimAxes :: [RClassRef]
       }
 
 describe :: UExpr -> ExprDescription
@@ -334,11 +334,11 @@ data Expr
   | Reduce
       { _id :: Int,
         _expr :: Expr,
-        _sikeys :: HM.HashMap AdimRef MapIdentifier
+        _sikeys :: HM.HashMap RClassRef MapIdentifier
       }
   | Broadcast {_id :: Int, _expr :: Expr, _extendedShape :: TensorShape}
   | Constant {_id :: Int, _elem :: Elem, _shape :: TensorShape}
-  | Iota {_id :: Int, _shape :: TensorShape, _axis :: AdimRef}
+  | Iota {_id :: Int, _shape :: TensorShape, _axis :: RClassRef}
   | Slice
       { _id :: Int,
         _expr :: Expr,
@@ -367,19 +367,19 @@ data Expr
         _update :: Expr,
         _start :: Params
       }
-  | Concat {_id :: Int, _lhs :: Expr, _rhs :: Expr, _axis :: AdimRef}
-  | ConcatList {_id :: Int, _exprs :: [Expr], _axis :: AdimRef}
+  | Concat {_id :: Int, _lhs :: Expr, _rhs :: Expr, _axis :: RClassRef}
+  | ConcatList {_id :: Int, _exprs :: [Expr], _axis :: RClassRef}
   | Relabel
       { _id :: Int,
         _expr :: Expr,
-        _relabelMap :: HM.HashMap AdimRef AdimRef
+        _relabelMap :: HM.HashMap RClassRef RClassRef
       }
   | Dot
       { _id :: Int,
         _lhs :: Expr,
         _rhs :: Expr,
-        _constractionSIMaps :: HM.HashMap AdimRef MapIdentifier,
-        _batchAdims :: [AdimRef]
+        _constractionSIMaps :: HM.HashMap RClassRef MapIdentifier,
+        _batchRClasses :: [RClassRef]
       }
   | ConvBase
       { _id :: Int,
@@ -401,13 +401,13 @@ data Expr
         _expr :: Expr,
         _imax :: Elem
       }
-  | ReverseTensor {_id :: Int, _expr :: Expr, _axes :: [AdimRef]}
+  | ReverseTensor {_id :: Int, _expr :: Expr, _axes :: [RClassRef]}
   | Select {_id :: Int, _cond :: Expr, _true :: Expr, _false :: Expr}
   | ReshapeDegenerate
       { _id :: Int,
         _expr :: Expr,
-        _introAxes :: [(AdimRef, AdimIdentifier)],
-        _elimAxes :: [AdimRef]
+        _introAxes :: [(RClassRef, RClassIdentifier)],
+        _elimAxes :: [RClassRef]
       }
   deriving (Show)
 
@@ -608,8 +608,8 @@ instance PPrint NumTensorAssumption where
   pformat = viaShow
 
 data Env = Env
-  { declaredAdims :: HS.HashSet AdimIdentifier,
-    mapAdims :: HM.HashMap MapIdentifier AdimIdentifier,
+  { declaredRClasses :: HS.HashSet RClassIdentifier,
+    mapRClasses :: HM.HashMap MapIdentifier RClassIdentifier,
     tensorShapes :: HM.HashMap TensorIdentifier TensorShape,
     tensorDTypes :: HM.HashMap TensorIdentifier DType,
     exprs :: HM.HashMap ExprDescription Expr,
@@ -619,9 +619,9 @@ data Env = Env
     numTensorAssumptions :: [NumTensorAssumption],
     siMaps :: HS.HashSet MapIdentifier,
     siRelations :: [Condition],
-    singletonAdims :: HS.HashSet AdimIdentifier,
+    singletonRClasses :: HS.HashSet RClassIdentifier,
     monitoringExprs :: [(T.Text, Expr)],
-    monitoringMaps :: [(T.Text, AdimRef, MapIdentifier)],
+    monitoringMaps :: [(T.Text, RClassRef, MapIdentifier)],
     lhsSIMaps :: HS.HashSet MapIdentifier,
     rhsSIMaps :: HS.HashSet MapIdentifier
   }
@@ -702,55 +702,55 @@ internWithCheck uexpr check = do
       (shape, dtype) <- check
       internExpr uexpr shape dtype
 
-getAdimByMap :: MapIdentifier -> DSLContext AdimIdentifier
-getAdimByMap map = do
+getRClassByMap :: MapIdentifier -> DSLContext RClassIdentifier
+getRClassByMap map = do
   Env {..} <- get
-  case HM.lookup map mapAdims of
-    Just adim -> return adim
+  case HM.lookup map mapRClasses of
+    Just rclass -> return rclass
     Nothing -> throwError "Map not exist"
 
-checkMapHasAdim :: AdimIdentifier -> MapIdentifier -> DSLContext ()
-checkMapHasAdim adim map = do
-  adim' <- getAdimByMap map
-  unless (adim == adim') $ throwError "Adim and map mismatch"
+checkMapHasRClass :: RClassIdentifier -> MapIdentifier -> DSLContext ()
+checkMapHasRClass rclass map = do
+  rclass' <- getRClassByMap map
+  unless (rclass == rclass') $ throwError "RClass and map mismatch"
 
 -- Env {..} <- get
--- case HM.lookup map mapAdims of
+-- case HM.lookup map mapRClasses of
 --   Nothing -> throwError "Map not exist"
---   Just adim' -> unless (adim == adim') $ throwError "Adim and map mismatch"
+--   Just rclass' -> unless (rclass == rclass') $ throwError "RClass and map mismatch"
 
 checkParamsWellFormed ::
-  AbstractShape -> HM.HashMap AdimRef MapIdentifier -> DSLContext ()
+  AbstractShape -> HM.HashMap RClassRef MapIdentifier -> DSLContext ()
 checkParamsWellFormed shape params = do
-  adimMapList <-
-    traverse (\(ref, map) -> (,map) <$> getAdimByAdimRef shape ref) $
+  rclassMapList <-
+    traverse (\(ref, map) -> (,map) <$> getRClassByRClassRef shape ref) $
       HM.toList params
-  mapM_ (uncurry checkMapHasAdim) adimMapList
+  mapM_ (uncurry checkMapHasRClass) rclassMapList
 
 validTensorShape :: TensorShape -> DSLContext ()
 validTensorShape TensorShape {..} = do
   Env {..} <- get
-  let unlabelledAdims = HM.keysSet unlabelled
-  let labelledAdims = HS.fromList $ fst <$> HM.elems labelled
-  let allAdims = unlabelledAdims <> labelledAdims
-  unless (HS.isSubsetOf allAdims declaredAdims) $
-    throwError "Adim not exist, is that created using newAdim/newAdim'?"
-  unless (HS.intersection unlabelledAdims labelledAdims == HS.empty) $
-    throwError "Labelled and unlabelled adim overlap"
-  go mapAdims $ HM.toList unlabelled
-  go mapAdims $ HM.elems labelled
+  let unlabelledRClasses = HM.keysSet unlabelled
+  let labelledRClasses = HS.fromList $ fst <$> HM.elems labelled
+  let allRClasses = unlabelledRClasses <> labelledRClasses
+  unless (HS.isSubsetOf allRClasses declaredRClasses) $
+    throwError "RClass not exist, is that created using newRClass/newRClass'?"
+  unless (HS.intersection unlabelledRClasses labelledRClasses == HS.empty) $
+    throwError "Labelled and unlabelled rclass overlap"
+  go mapRClasses $ HM.toList unlabelled
+  go mapRClasses $ HM.elems labelled
   where
     go _ [] = return ()
-    go mapAdims ((adimName, mapName) : ls) = do
-      case HM.lookup mapName mapAdims of
+    go mapRClasses ((rclassName, mapName) : ls) = do
+      case HM.lookup mapName mapRClasses of
         Nothing ->
           throwError $
             "Map not exist, is that created using "
               <> "newDimMap/newDimMap'?"
-        Just adimName' ->
-          unless (adimName == adimName') $
-            throwError "Adim and map mismatch"
-      go mapAdims ls
+        Just rclassName' ->
+          unless (rclassName == rclassName') $
+            throwError "RClass and map mismatch"
+      go mapRClasses ls
 
 -- | Monitor the validity and shape of an expression on failure.
 monitorExprOnFailure :: T.Text -> Expr -> DSLContext ()
@@ -759,7 +759,7 @@ monitorExprOnFailure msg expr = do
   put $ env {monitoringExprs = (msg, expr) : monitoringExprs env}
 
 -- | Monitor the contents of a map on failure.
-monitorMapOnFailure :: T.Text -> AdimRef -> MapIdentifier -> DSLContext ()
+monitorMapOnFailure :: T.Text -> RClassRef -> MapIdentifier -> DSLContext ()
 monitorMapOnFailure msg ref map = do
   env <- get
   put $ env {monitoringMaps = (msg, ref, map) : monitoringMaps env}

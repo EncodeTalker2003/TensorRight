@@ -5,64 +5,64 @@ import TensorRight
 
 rule01 :: forall a. AnyDTypeRule a
 rule01 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  adim0size <- newMap "adim0size" adim0
-  [adim1size0, adim1size1] <- newMaps ["adim1size0", "adim1size1"] adim1
-  t1 <- newTensor @a "t1" [adim0 --> adim0size, adim1 --> adim1size0 @@ "label1"]
-  t2 <- newTensor @a "t2" [adim0 --> adim0size, adim1 --> adim1size1 @@ "label1"]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  rclass0size <- newMap "rclass0size" rclass0
+  [rclass1size0, rclass1size1] <- newMaps ["rclass1size0", "rclass1size1"] rclass1
+  t1 <- newTensor @a "t1" [rclass0 --> rclass0size, rclass1 --> rclass1size0 @@ "label1"]
+  t2 <- newTensor @a "t2" [rclass0 --> rclass0size, rclass1 --> rclass1size1 @@ "label1"]
   lhs <- concatTensorList [t1, t2] (ByLabel "label1")
   rhs <- concatTensor t1 t2 (ByLabel "label1")
   rewrite "ConcatList(A, B) ⇒ Concat(A, B)" lhs rhs
 
 rule02 :: forall a. AnyDTypeRule a
 rule02 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  adim0size <- newMap "adim0size" adim0
-  [adim1size0, adim1size1, adim1size2] <- newMaps ["adim1size0", "adim1size1", "adim1size2"] adim1
-  t1 <- newTensor @a "t1" [adim0 --> adim0size, adim1 --> adim1size0 @@ "label1"]
-  t2 <- newTensor @a "t2" [adim0 --> adim0size, adim1 --> adim1size1 @@ "label1"]
-  t3 <- newTensor @a "t3" [adim0 --> adim0size, adim1 --> adim1size2 @@ "label1"]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  rclass0size <- newMap "rclass0size" rclass0
+  [rclass1size0, rclass1size1, rclass1size2] <- newMaps ["rclass1size0", "rclass1size1", "rclass1size2"] rclass1
+  t1 <- newTensor @a "t1" [rclass0 --> rclass0size, rclass1 --> rclass1size0 @@ "label1"]
+  t2 <- newTensor @a "t2" [rclass0 --> rclass0size, rclass1 --> rclass1size1 @@ "label1"]
+  t3 <- newTensor @a "t3" [rclass0 --> rclass0size, rclass1 --> rclass1size2 @@ "label1"]
   lhs <- concatTensor t1 (concatTensor t2 t3 (ByLabel "label1")) (ByLabel "label1")
   rhs <- concatTensor (concatTensor t1 t2 (ByLabel "label1")) t3 (ByLabel "label1")
   rewrite "Concat(A, Concat(B, C)) ⇒ Concat(Concat(A, B), C)" lhs rhs
 
 rule03 :: forall a. AnyDTypeRule a
 rule03 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  adim0size <- newMap "adim0size" adim0
-  [adim1size0, adim1size1, adim1size2] <- newMaps ["adim1size0", "adim1size1", "adim1size2"] adim1
-  t1 <- newTensor @a "t1" [adim0 --> adim0size, adim1 --> adim1size0 @@ "label1"]
-  t2 <- newTensor @a "t2" [adim0 --> adim0size, adim1 --> adim1size1 @@ "label1"]
-  t3 <- newTensor @a "t3" [adim0 --> adim0size, adim1 --> adim1size2 @@ "label1"]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  rclass0size <- newMap "rclass0size" rclass0
+  [rclass1size0, rclass1size1, rclass1size2] <- newMaps ["rclass1size0", "rclass1size1", "rclass1size2"] rclass1
+  t1 <- newTensor @a "t1" [rclass0 --> rclass0size, rclass1 --> rclass1size0 @@ "label1"]
+  t2 <- newTensor @a "t2" [rclass0 --> rclass0size, rclass1 --> rclass1size1 @@ "label1"]
+  t3 <- newTensor @a "t3" [rclass0 --> rclass0size, rclass1 --> rclass1size2 @@ "label1"]
   lhs <- concatTensorList [t1, t2, t3] (ByLabel "label1")
   rhs <- concatTensor t1 (concatTensor t2 t3 (ByLabel "label1")) (ByLabel "label1")
   rewrite "ConcatList(A, B, C) ⇒ Concat(A, Concat(B, C))" lhs rhs
 
 rule04 :: forall a. AnyDTypeRule a
 rule04 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  [adim0sizeMap, adim0endMap, adim0startMap, adim0strideMap] <- newMaps ["adim0sizeMap", "adim0endMap", "adim0startMap", "adim0strideMap"] adim0
-  [adim1sizeMap, adim1startMap1, adim1endMap1, adim1startMap2, adim1endMap2, adim1strideMap] <- newMaps ["adim1sizeMap", "adim1startMap1", "adim1endMap1", "adim1startMap2", "adim1endMap2", "adim1strideMap"] adim1
-  tensor <- newTensor @a "tensor" [adim0 --> adim0sizeMap, adim1 --> adim1sizeMap]
-  lhs <- concatTensor (slice tensor [adim0 --> adim0startMap, adim1 --> adim1startMap1] [adim0 --> adim0endMap, adim1 --> adim1endMap1] [adim0 --> adim0strideMap, adim1 --> adim1strideMap]) (slice tensor [adim0 --> adim0startMap, adim1 --> adim1startMap2] [adim0 --> adim0endMap, adim1 --> adim1endMap2] [adim0 --> adim0strideMap, adim1 --> adim1strideMap]) (ByAdim adim1)
-  rhs <- slice tensor [adim0 --> adim0startMap, adim1 --> adim1startMap1] [adim0 --> adim0endMap, adim1 --> adim1endMap2] [adim0 --> adim0strideMap, adim1 --> adim1strideMap]
-  precondition [adim1strideMap] $ \[adim1stride] -> adim1stride .== 1
-  precondition [adim1startMap1, adim1startMap2] $
-    \[adim1start1, adim1start2] -> adim1start1 .<= adim1start2
-  precondition [adim1endMap1, adim1endMap2] $
-    \[adim1end1, adim1end2] -> adim1end1 .<= adim1end2
-  precondition [adim1endMap1, adim1startMap2] $
-    \[adim1end1, adim1start2] -> adim1end1 .== adim1start2
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  [rclass0sizeMap, rclass0endMap, rclass0startMap, rclass0strideMap] <- newMaps ["rclass0sizeMap", "rclass0endMap", "rclass0startMap", "rclass0strideMap"] rclass0
+  [rclass1sizeMap, rclass1startMap1, rclass1endMap1, rclass1startMap2, rclass1endMap2, rclass1strideMap] <- newMaps ["rclass1sizeMap", "rclass1startMap1", "rclass1endMap1", "rclass1startMap2", "rclass1endMap2", "rclass1strideMap"] rclass1
+  tensor <- newTensor @a "tensor" [rclass0 --> rclass0sizeMap, rclass1 --> rclass1sizeMap]
+  lhs <- concatTensor (slice tensor [rclass0 --> rclass0startMap, rclass1 --> rclass1startMap1] [rclass0 --> rclass0endMap, rclass1 --> rclass1endMap1] [rclass0 --> rclass0strideMap, rclass1 --> rclass1strideMap]) (slice tensor [rclass0 --> rclass0startMap, rclass1 --> rclass1startMap2] [rclass0 --> rclass0endMap, rclass1 --> rclass1endMap2] [rclass0 --> rclass0strideMap, rclass1 --> rclass1strideMap]) (ByRClass rclass1)
+  rhs <- slice tensor [rclass0 --> rclass0startMap, rclass1 --> rclass1startMap1] [rclass0 --> rclass0endMap, rclass1 --> rclass1endMap2] [rclass0 --> rclass0strideMap, rclass1 --> rclass1strideMap]
+  precondition [rclass1strideMap] $ \[rclass1stride] -> rclass1stride .== 1
+  precondition [rclass1startMap1, rclass1startMap2] $
+    \[rclass1start1, rclass1start2] -> rclass1start1 .<= rclass1start2
+  precondition [rclass1endMap1, rclass1endMap2] $
+    \[rclass1end1, rclass1end2] -> rclass1end1 .<= rclass1end2
+  precondition [rclass1endMap1, rclass1startMap2] $
+    \[rclass1end1, rclass1start2] -> rclass1end1 .== rclass1start2
   rewrite "Concat(Slice(A), Slice(A)) ⇒ Slice(A)" lhs rhs
 
 rule05 :: forall a. AnyDTypeRule a
 rule05 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  [sizeMap0, lowMap0, zeroMap0] <- newMaps ["sizeMap0", "lowMap0", "zeroMap0"] adim0
-  [sizeMap1, zeroMap1] <- newMaps ["sizeMap1", "zeroMap1"] adim1
-  tensor <- newTensor @a "tensor" [adim0 --> sizeMap0, adim1 --> sizeMap1]
-  lhs <- concatTensor (constant @a "a" [adim0 --> lowMap0, adim1 --> sizeMap1]) tensor (ByAdim adim0)
-  rhs <- pad tensor ("a" :: a) [adim0 --> lowMap0, adim1 --> zeroMap1] [adim0 --> zeroMap0, adim1 --> zeroMap1] [adim0 --> zeroMap0, adim1 --> zeroMap1]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  [sizeMap0, lowMap0, zeroMap0] <- newMaps ["sizeMap0", "lowMap0", "zeroMap0"] rclass0
+  [sizeMap1, zeroMap1] <- newMaps ["sizeMap1", "zeroMap1"] rclass1
+  tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0, rclass1 --> sizeMap1]
+  lhs <- concatTensor (constant @a "a" [rclass0 --> lowMap0, rclass1 --> sizeMap1]) tensor (ByRClass rclass0)
+  rhs <- pad tensor ("a" :: a) [rclass0 --> lowMap0, rclass1 --> zeroMap1] [rclass0 --> zeroMap0, rclass1 --> zeroMap1] [rclass0 --> zeroMap0, rclass1 --> zeroMap1]
   precondition [lowMap0] $ \[low0] -> low0 .>= 0
   precondition [zeroMap0] $ \[zero0] -> zero0 .== 0
   precondition [zeroMap1] $ \[zero1] -> zero1 .== 0
@@ -70,12 +70,12 @@ rule05 _ = do
 
 rule06 :: forall a. AnyDTypeRule a
 rule06 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  [sizeMap0, highMap0, zeroMap0] <- newMaps ["sizeMap0", "highMap0", "zeroMap0"] adim0
-  [sizeMap1, zeroMap1] <- newMaps ["sizeMap1", "zeroMap1"] adim1
-  tensor <- newTensor @a "tensor" [adim0 --> sizeMap0, adim1 --> sizeMap1]
-  lhs <- concatTensor tensor (constant @a "a" [adim0 --> highMap0, adim1 --> sizeMap1]) (ByAdim adim0)
-  rhs <- pad tensor ("a" :: a) [adim0 --> zeroMap0, adim1 --> zeroMap1] [adim0 --> zeroMap0, adim1 --> zeroMap1] [adim0 --> highMap0, adim1 --> zeroMap1]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  [sizeMap0, highMap0, zeroMap0] <- newMaps ["sizeMap0", "highMap0", "zeroMap0"] rclass0
+  [sizeMap1, zeroMap1] <- newMaps ["sizeMap1", "zeroMap1"] rclass1
+  tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0, rclass1 --> sizeMap1]
+  lhs <- concatTensor tensor (constant @a "a" [rclass0 --> highMap0, rclass1 --> sizeMap1]) (ByRClass rclass0)
+  rhs <- pad tensor ("a" :: a) [rclass0 --> zeroMap0, rclass1 --> zeroMap1] [rclass0 --> zeroMap0, rclass1 --> zeroMap1] [rclass0 --> highMap0, rclass1 --> zeroMap1]
   precondition [highMap0] $ \[high0] -> high0 .>= 0
   precondition [zeroMap0] $ \[zero0] -> zero0 .== 0
   precondition [zeroMap1] $ \[zero1] -> zero1 .== 0
@@ -83,12 +83,12 @@ rule06 _ = do
 
 rule07 :: forall a. AnyDTypeRule a
 rule07 _ = do
-  [adim0, adim1] <- newAdims ["adim0", "adim1"]
-  adim0size <- newMap "adim0size" adim0
-  [adim1size0, adim1size1, adim1size2] <- newMaps ["adim1size0", "adim1size1", "adim1size2"] adim1
-  t1 <- newTensor @a "t1" [adim0 --> adim0size, adim1 --> adim1size0 @@ "label1"]
-  t2 <- newTensor @a "t2" [adim0 --> adim0size, adim1 --> adim1size1 @@ "label1"]
-  t3 <- newTensor @a "t3" [adim0 --> adim0size, adim1 --> adim1size2 @@ "label1"]
+  [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
+  rclass0size <- newMap "rclass0size" rclass0
+  [rclass1size0, rclass1size1, rclass1size2] <- newMaps ["rclass1size0", "rclass1size1", "rclass1size2"] rclass1
+  t1 <- newTensor @a "t1" [rclass0 --> rclass0size, rclass1 --> rclass1size0 @@ "label1"]
+  t2 <- newTensor @a "t2" [rclass0 --> rclass0size, rclass1 --> rclass1size1 @@ "label1"]
+  t3 <- newTensor @a "t3" [rclass0 --> rclass0size, rclass1 --> rclass1size2 @@ "label1"]
   lhs <- concatTensor t1 (concatTensor t2 t3 (ByLabel "label1")) (ByLabel "label1")
   rhs <- concatTensorList [t1, t2, t3] (ByLabel "label1")
   rewrite "Concat(A, Concat(B, C)) ⇒ ConcatList(A, B, C)" lhs rhs

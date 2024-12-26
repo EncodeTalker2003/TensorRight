@@ -103,10 +103,10 @@ import TensorRight.Internal.Core.Tensor.Typed
 import TensorRight.Internal.DSL.Expr
   ( ConvConfigArgsExpr
       ( ConvConfigArgsExpr,
-        batchAdims,
+        batchRClasses,
         contractingSIMaps,
-        featureAdims,
-        outputFeatureAdims,
+        featureRClasses,
+        outputFeatureRClasses,
         strides
       ),
     ConvPaddingArgsExpr (ConvPaddingArgsExpr, high, ldilation, low, rdilation),
@@ -147,10 +147,10 @@ import TensorRight.Internal.DSL.Expr
     SliceArgsExpr (SliceArgsExpr, end, start, strides),
     exprId,
   )
-import TensorRight.Internal.DSL.Identifier (AdimIdentifier, MapIdentifier, TensorIdentifier)
+import TensorRight.Internal.DSL.Identifier (RClassIdentifier, MapIdentifier, TensorIdentifier)
 import TensorRight.Internal.DSL.Shape
   ( AbstractShape (AbstractShape),
-    AdimRef (ByAdim, ByLabel),
+    RClassRef (ByRClass, ByLabel),
     TensorShape (labelled, unlabelled),
     toAbstractShape,
   )
@@ -197,7 +197,7 @@ modifyMaps name maps allMaps =
         else mapBase
 
 data EvalState = EvalState
-  { adims :: HM.HashMap AdimIdentifier (OS.OSet Int),
+  { rclasses :: HM.HashMap RClassIdentifier (OS.OSet Int),
     maps :: HM.HashMap MapIdentifier MapBase,
     allTensorShapes :: HM.HashMap TensorIdentifier TensorShape,
     allTensorDTypes :: HM.HashMap TensorIdentifier DType,
@@ -208,52 +208,52 @@ data EvalState = EvalState
 
 type EvalContext = State EvalState
 
-getAxisMapLike :: (AxisMapLike m) => AdimRef -> MapIdentifier -> EvalContext m
+getAxisMapLike :: (AxisMapLike m) => RClassRef -> MapIdentifier -> EvalContext m
 getAxisMapLike ref map = do
   maps <- gets maps
   case HM.lookup map maps of
     Just m -> case ref of
-      ByAdim _ -> return $ fromHashMap $ HM.mapKeys Axis m
+      ByRClass _ -> return $ fromHashMap $ HM.mapKeys Axis m
       ByLabel label -> return $ fromHashMap $ HM.mapKeys (LabelledAxis label) m
     Nothing -> error $ "Map " <> show map <> "not found"
 
-getAdimByAdimRef :: AbstractShape -> AdimRef -> EvalContext AdimIdentifier
-getAdimByAdimRef (AbstractShape _ u) (ByAdim adim) = do
-  if HS.member adim u
-    then return adim
-    else error $ "Adim " <> show adim <> " not found in shape"
-getAdimByAdimRef (AbstractShape l _) (ByLabel label) = do
+getRClassByRClassRef :: AbstractShape -> RClassRef -> EvalContext RClassIdentifier
+getRClassByRClassRef (AbstractShape _ u) (ByRClass rclass) = do
+  if HS.member rclass u
+    then return rclass
+    else error $ "RClass " <> show rclass <> " not found in shape"
+getRClassByRClassRef (AbstractShape l _) (ByLabel label) = do
   case HM.lookup label l of
     Nothing -> error $ "Label " <> show label <> " not found in shape"
-    Just adim -> return adim
+    Just rclass -> return rclass
 
-getAxisName :: AdimIdentifier -> Int -> T.Text
-getAxisName adim i = T.pack $ show adim <> "." <> show i
+getAxisName :: RClassIdentifier -> Int -> T.Text
+getAxisName rclass i = T.pack $ show rclass <> "." <> show i
 
-getAxesList :: AdimRef -> AdimIdentifier -> EvalContext [Axis]
-getAxesList (ByAdim adim) _ = do
-  adims <- gets adims
-  case HM.lookup adim adims of
-    Nothing -> error $ "Adim " <> show adim <> " not found"
+getAxesList :: RClassRef -> RClassIdentifier -> EvalContext [Axis]
+getAxesList (ByRClass rclass) _ = do
+  rclasses <- gets rclasses
+  case HM.lookup rclass rclasses of
+    Nothing -> error $ "RClass " <> show rclass <> " not found"
     Just axes ->
-      return $ Axis . getAxisName adim <$> toList axes
-getAxesList (ByLabel label) adim = do
-  adims <- gets adims
-  case HM.lookup adim adims of
-    Nothing -> error $ "Adim " <> show adim <> " not found"
+      return $ Axis . getAxisName rclass <$> toList axes
+getAxesList (ByLabel label) rclass = do
+  rclasses <- gets rclasses
+  case HM.lookup rclass rclasses of
+    Nothing -> error $ "RClass " <> show rclass <> " not found"
     Just axes ->
-      return $ LabelledAxis label . getAxisName adim <$> toList axes
+      return $ LabelledAxis label . getAxisName rclass <$> toList axes
 
-getAxes :: AdimRef -> AdimIdentifier -> EvalContext Axes
-getAxes ref adim = HS.fromList <$> getAxesList ref adim
+getAxes :: RClassRef -> RClassIdentifier -> EvalContext Axes
+getAxes ref rclass = HS.fromList <$> getAxesList ref rclass
 
-adimToAxes :: AbstractShape -> AdimRef -> EvalContext Axes
-adimToAxes shape ref = do
-  adim <- getAdimByAdimRef shape ref
-  getAxes ref adim
+rclassToAxes :: AbstractShape -> RClassRef -> EvalContext Axes
+rclassToAxes shape ref = do
+  rclass <- getRClassByRClassRef shape ref
+  getAxes ref rclass
 
-adimsToAxes :: AbstractShape -> [AdimRef] -> EvalContext Axes
-adimsToAxes shape = fmap mconcat . traverse (adimToAxes shape)
+rclassesToAxes :: AbstractShape -> [RClassRef] -> EvalContext Axes
+rclassesToAxes shape = fmap mconcat . traverse (rclassToAxes shape)
 
 getIndicesFromParams :: Params -> EvalContext Indices
 getIndicesFromParams params = fmap mconcat $ traverse (uncurry getAxisMapLike) $ HM.toList params
@@ -281,19 +281,19 @@ tensorShapeToSizes shape =
       fmap (\(label, (_, map)) -> (ByLabel label, map)) $
         HM.toList $
           labelled shape
-    unlabelledList = fmap (first ByAdim) $ HM.toList $ unlabelled shape
+    unlabelledList = fmap (first ByRClass) $ HM.toList $ unlabelled shape
 
 exprShape :: Expr -> EvalContext AbstractShape
 exprShape expr = do
   state <- get
   return $ exprShapes state HM.! exprId expr
 
-data SymIdentInfo = SymTensor TensorIdentifier | SymMap AdimIdentifier Int MapIdentifier
+data SymIdentInfo = SymTensor TensorIdentifier | SymMap RClassIdentifier Int MapIdentifier
   deriving (Eq, Ord, Hashable, Generic, Lift, NFData)
 
 instance Show SymIdentInfo where
   show (SymTensor ident) = show ident
-  show (SymMap adim int map) = show adim <> "." <> show int <> "." <> show map
+  show (SymMap rclass int map) = show rclass <> "." <> show int <> "." <> show map
 
 eval' :: Expr -> EvalContext (ErrorEnv Tensor)
 eval' (Var _ ident) = do
@@ -338,10 +338,10 @@ eval' (Constant _ elem shape) = do
   return $ constantTensor elem sizes
 eval' (Iota _ shape ref) = do
   sizes <- tensorShapeToSizes shape
-  adim <- getAdimByAdimRef (toAbstractShape shape) ref
-  axes <- getAxes ref adim
+  rclass <- getRClassByRClassRef (toAbstractShape shape) ref
+  axes <- getAxes ref rclass
   if HS.size axes /= 1
-    then error "Iota: adim must have a single axis"
+    then error "Iota: rclass must have a single axis"
     else return $ iota sizes (head $ HS.toList axes)
 eval' (Slice _ expr SliceArgsExpr {..}) = do
   e <- eval expr
@@ -373,18 +373,18 @@ eval' (Concat _ lhs rhs ref) = do
   l <- eval lhs
   r <- eval rhs
   lShape <- gets $ (HM.! exprId lhs) . exprShapes
-  adim <- getAdimByAdimRef lShape ref
-  axes <- getAxes ref adim
+  rclass <- getRClassByRClassRef lShape ref
+  axes <- getAxes ref rclass
   if HS.size axes /= 1
-    then error "Concat: adim must have a single axis"
+    then error "Concat: rclass must have a single axis"
     else return $ concatTensor l r (head $ HS.toList axes)
 eval' (ConcatList _ exprs ref) = do
   es <- traverse eval exprs
   headShape <- gets $ (HM.! exprId (head exprs)) . exprShapes
-  adim <- getAdimByAdimRef headShape ref
-  axes <- getAxes ref adim
+  rclass <- getRClassByRClassRef headShape ref
+  axes <- getAxes ref rclass
   if HS.size axes /= 1
-    then error "ConcatList: adim must have a single axis"
+    then error "ConcatList: rclass must have a single axis"
     else return $ concatTensorList es (head $ HS.toList axes)
 eval' (Relabel _ expr map) = do
   e <- eval expr
@@ -395,16 +395,16 @@ eval' (Relabel _ expr map) = do
   return $ relabel e loweredRelabelMap
   where
     mapEntryToAxesMap originalShape from to = do
-      fromAdim <- getAdimByAdimRef originalShape from
-      fromAxesList <- getAxesList from fromAdim
-      toAxesList <- getAxesList to fromAdim
+      fromRClass <- getRClassByRClassRef originalShape from
+      fromAxesList <- getAxesList from fromRClass
+      toAxesList <- getAxesList to fromRClass
       return $ HM.fromList $ zip fromAxesList toAxesList
 eval' (Dot _ lhs rhs contractingSIMaps batch) = do
   l <- eval lhs
   r <- eval rhs
   lhsShape <- exprShape lhs
   contractingSI <- getIndicesFromParams contractingSIMaps
-  batchAxes <- adimsToAxes lhsShape batch
+  batchAxes <- rclassesToAxes lhsShape batch
   return $ dot l r contractingSI batchAxes
 eval'
   ( ConvBase
@@ -417,9 +417,9 @@ eval'
     w <- eval weight
     lhsShape <- exprShape input
     rhsShape <- exprShape weight
-    batchAxes <- adimsToAxes lhsShape batchAdims
-    featureAxes <- adimsToAxes lhsShape featureAdims
-    outputFeatureAxes <- adimsToAxes rhsShape outputFeatureAdims
+    batchAxes <- rclassesToAxes lhsShape batchRClasses
+    featureAxes <- rclassesToAxes lhsShape featureRClasses
+    outputFeatureAxes <- rclassesToAxes rhsShape outputFeatureRClasses
     s <- getIndicesFromParams strides
     si <- getIndicesFromParams contractingSIMaps
     return $
@@ -443,9 +443,9 @@ eval'
     w <- eval weight
     lhsShape <- exprShape input
     rhsShape <- exprShape weight
-    batchAxes <- adimsToAxes lhsShape batchAdims
-    featureAxes <- adimsToAxes lhsShape featureAdims
-    outputFeatureAxes <- adimsToAxes rhsShape outputFeatureAdims
+    batchAxes <- rclassesToAxes lhsShape batchRClasses
+    featureAxes <- rclassesToAxes lhsShape featureRClasses
+    outputFeatureAxes <- rclassesToAxes rhsShape outputFeatureRClasses
     s <- getIndicesFromParams strides
     si <- getIndicesFromParams contractingSIMaps
     l <- getSizesFromParams low
@@ -484,15 +484,15 @@ eval' (Select _ c' t' e') = do
   return $ select c t e
 eval' (ReverseTensor _ expr axes) = do
   shape <- exprShape expr
-  reverseAxes <- adimsToAxes shape axes
+  reverseAxes <- rclassesToAxes shape axes
   e <- eval expr
   return $ reverseTensor e reverseAxes
 eval' res@(ReshapeDegenerate _ expr introAxes elimAxes) = do
   e <- eval expr
   shape <- exprShape expr
   resShape <- exprShape res
-  introAxes' <- adimsToAxes resShape (fst <$> introAxes)
-  elimAxes' <- adimsToAxes shape elimAxes
+  introAxes' <- rclassesToAxes resShape (fst <$> introAxes)
+  elimAxes' <- rclassesToAxes shape elimAxes
   return $ reshapeDegenerate e introAxes' elimAxes'
 
 evalRewrite :: Rewrite -> EvalContext (ErrorEnv Tensor, ErrorEnv Tensor)

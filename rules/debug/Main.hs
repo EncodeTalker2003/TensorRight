@@ -5,16 +5,16 @@ import TensorRight
 
 rulePadTwice :: forall a. AnyDTypeRule a
 rulePadTwice _ = do
-  adim <- newAdim "adim"
+  rclass <- newRClass "rclass"
 
-  shape <- newMap "shape" adim
+  shape <- newMap "shape" rclass
 
   [innerLow, innerInterior, innerHigh] <-
-    newMaps ["innerLow", "innerInterior", "innerHigh"] adim
+    newMaps ["innerLow", "innerInterior", "innerHigh"] rclass
   [outerLow, outerInterior, outerHigh] <-
-    newMaps ["outerLow", "outerInterior", "outerHigh"] adim
+    newMaps ["outerLow", "outerInterior", "outerHigh"] rclass
   [rhsLow, rhsInterior, rhsHigh] <-
-    newMaps ["rhsLow", "rhsInterior", "rhsHigh"] adim
+    newMaps ["rhsLow", "rhsInterior", "rhsHigh"] rclass
 
   let cond outerPad innerPad rhsPad =
         precondition [outerPad, innerPad, rhsPad] $
@@ -29,29 +29,29 @@ rulePadTwice _ = do
   precondition [innerLow] $ \[vi0] -> vi0 .>= 0
   precondition [innerHigh] $ \[vi0] -> vi0 .>= 0
 
-  x <- newTensor @a "x" [adim --> shape]
+  x <- newTensor @a "x" [rclass --> shape]
 
   lhs <-
     pad
       ( pad x ("a" :: a) $
           Padding
-            { low = [adim --> innerLow],
-              interior = [adim --> innerInterior],
-              high = [adim --> innerHigh]
+            { low = [rclass --> innerLow],
+              interior = [rclass --> innerInterior],
+              high = [rclass --> innerHigh]
             }
       )
       ("a" :: a)
       $ Padding
-        { low = [adim --> outerLow],
-          interior = [adim --> outerInterior],
-          high = [adim --> outerHigh]
+        { low = [rclass --> outerLow],
+          interior = [rclass --> outerInterior],
+          high = [rclass --> outerHigh]
         }
   rhs <-
     pad x ("a" :: a) $
       Padding
-        { low = [adim --> rhsLow],
-          interior = [adim --> rhsInterior],
-          high = [adim --> rhsHigh]
+        { low = [rclass --> rhsLow],
+          interior = [rclass --> rhsInterior],
+          high = [rclass --> rhsHigh]
         }
   rewrite
     "when i0 == 0, pad(pad(x, l0, i0, h0), l1, i1, h1) --> pad(x, l0+l1, i0+i1, h0+h1)"
@@ -60,12 +60,12 @@ rulePadTwice _ = do
   
 rulePadLowCombine :: forall a. AnyDTypeRule a
 rulePadLowCombine _ = do
-  adim <- newAdim "adim"
+  rclass <- newRClass "rclass"
 
-  shape <- newMap "shape" adim
+  shape <- newMap "shape" rclass
 
   [innerLow, outerLow, rhsLow] <-
-    newMaps ["innerLow", "outerLow", "rhsLow"] adim
+    newMaps ["innerLow", "outerLow", "rhsLow"] rclass
 
   let cond outerPad innerPad rhsPad =
         precondition [outerPad, innerPad, rhsPad] $
@@ -76,15 +76,15 @@ rulePadLowCombine _ = do
   precondition [innerLow] $ \[vi0] -> vi0 .>= 0
   precondition [outerLow] $ \[vi0] -> vi0 .>= 0
 
-  x <- newTensor @a "x" [adim --> shape]
+  x <- newTensor @a "x" [rclass --> shape]
 
   lhs <-
     padLow
-      (padLow x ("a" :: a) [adim --> innerLow])
-        ("a" :: a) [adim --> outerLow]
+      (padLow x ("a" :: a) [rclass --> innerLow])
+        ("a" :: a) [rclass --> outerLow]
 
   rhs <-
-    padLow x ("a" :: a) [adim --> rhsLow]
+    padLow x ("a" :: a) [rclass --> rhsLow]
   rewrite
     "padLow(padLow(x, l0), l1) --> padLow(x, l0+l1)"
     lhs

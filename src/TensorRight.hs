@@ -4,50 +4,50 @@
 module TensorRight
   ( -- * Language contructs
 
-    -- ** @Adims@
+    -- ** @RClasses@
 
-    -- | An @Adim@ is set of individual axes (where each refers to a single,
-    -- concrete axis in a tensor). Every @Adim@ could comprise of an arbitrary
+    -- | An @RClass@ is set of individual axes (where each refers to a single,
+    -- concrete axis in a tensor). Every @RClass@ could comprise of an arbitrary
     -- number of individual-axes, and this set is kept uninterpreted/symbolic.
-    -- Our language does not allow splitting of an @Adim@ into smaller @Adims@,
-    -- or adding individual-axes to an @Adim@. This means that to operate on an
-    -- @Adim@, the user needs to perform the same operation on every
+    -- Our language does not allow splitting of an @RClass@ into smaller @RClasses@,
+    -- or adding individual-axes to an @RClass@. This means that to operate on an
+    -- @RClass@, the user needs to perform the same operation on every
     -- individual-axis in it.
     --
-    -- We can use 'newAdim' and 'newAdims' to declare @Adims@ in our language:
+    -- We can use 'newRClass' and 'newRClasses' to declare @RClasses@ in our language:
 
     -- | @
-    --   adim <- 'newAdim' "adim"
-    --   [adim1, adim2] <- 'newAdims' ["adim0", "adim1"]
+    --   rclass <- 'newRClass' "rclass"
+    --   [rclass1, rclass2] <- 'newRClasses' ["rclass0", "rclass1"]
     -- @
 
-    -- | This is written using Haskell's @do@ notation. 'newAdim' takes an Adim
-    -- name and return an Adim identifier corresponding to it, while 'newAdims'
-    -- takes a list of names, and returns a list of @Adim@ identifiers,
-    -- corresponding to those name. The returned @Adim@ identifiers can be used
+    -- | This is written using Haskell's @do@ notation. 'newRClass' takes an RClass
+    -- name and return an RClass identifier corresponding to it, while 'newRClasses'
+    -- takes a list of names, and returns a list of @RClass@ identifiers,
+    -- corresponding to those name. The returned @RClass@ identifiers can be used
     -- further in the code.
 
     -- ** Maps
 
-    -- | As seen before, an @Adim@ is a symbolic set of individual-axes. If we
-    -- want to represent the sizes of individual-axes in an @Adim@, we can use a
+    -- | As seen before, an @RClass@ is a symbolic set of individual-axes. If we
+    -- want to represent the sizes of individual-axes in an @RClass@, we can use a
     -- map from those individual-axes, to their respective size or indices.
-    -- Since any Adim is symbolic, and is represented by an identifier, these
+    -- Since any RClass is symbolic, and is represented by an identifier, these
     -- maps would also be symbolic and can be represented by an identifier
     --
     -- We can use the 'newMap' and 'newMaps' functions to declare maps on a
-    -- given adim in our language:
+    -- given rclass in our language:
 
     -- | @
-    -- map <- 'newMap' "map" adim
-    -- [map1, map2] <- 'newMaps' ["map1, map2"] adim
+    -- map <- 'newMap' "map" rclass
+    -- [map1, map2] <- 'newMaps' ["map1, map2"] rclass
     -- @
 
-    -- | 'newMap' takes a Map name and an @Adim@ identifier, and returns a @Map@
+    -- | 'newMap' takes a Map name and an @RClass@ identifier, and returns a @Map@
     -- identifier, while 'newMaps' takes a list of names and returns a list of
-    -- @Map@ identifiers, on the given @Adim@. A @Map@ identifier represents a
-    -- symbolic map, whose domain is the same as the individual-axes in an Adim.
-    -- So, we can say in this example, that @dom(map) = adim@.
+    -- @Map@ identifiers, on the given @RClass@. A @Map@ identifier represents a
+    -- symbolic map, whose domain is the same as the individual-axes in an RClass.
+    -- So, we can say in this example, that @dom(map) = rclass@.
     --
     -- The same map structure can also be used to represent operator parameters
     -- like slice, pad configurations, etc.
@@ -61,14 +61,14 @@ module TensorRight
     -- syntax sugars for creating such maps:
 
     -- | @
-    -- [nonNeg] <- 'newNonNegMap' "nonNeg" adim
-    -- [constMap] <- 'newConstMap' "constMap" 1 adim
+    -- [nonNeg] <- 'newNonNegMap' "nonNeg" rclass
+    -- [constMap] <- 'newConstMap' "constMap" 1 rclass
     -- @
 
     -- | In the code, the first line creates a map named @nonNeg@ on the given
-    -- @Adim@, with the constraint that all the elements in the map should be
+    -- @RClass@, with the constraint that all the elements in the map should be
     -- non-negative. The second line creates a map named @constMap@ on the given
-    -- adim with all the elements in the map being constant 1.
+    -- rclass with all the elements in the map being constant 1.
 
     -- | We may also combine multiple maps into a single map, using the
     -- 'combineMap' call:
@@ -83,35 +83,35 @@ module TensorRight
     -- ** Tensor creation
 
     -- | To describe a tensor, we need to describe its shape first. A tensor
-    -- comprises of a set of @Adims@, possibly duplicated, where each @Adim@ has
+    -- comprises of a set of @RClasses@, possibly duplicated, where each @RClass@ has
     -- its own set of individual axes. A tensor's shape is supposed to tell the
     -- size of the tensor along every axis. We can then describe the shape of a
     -- tensor as follows:
     --
-    -- * For each @Adim@, we can use a (symbolic) map, or a @Map@ identifier, to
-    -- represent sizes of the individual axes in that @Adim@
-    -- * The shape of tensor can be represented as a nested map from @Adim@
+    -- * For each @RClass@, we can use a (symbolic) map, or a @Map@ identifier, to
+    -- represent sizes of the individual axes in that @RClass@
+    -- * The shape of tensor can be represented as a nested map from @RClass@
     -- identifiers to @Map@ identifiers.
     --
-    -- For example, we can create a tensor having two @Adims@ @adim0@ and
-    -- @adim0@ as follows:
+    -- For example, we can create a tensor having two @RClasses@ @rclass0@ and
+    -- @rclass0@ as follows:
 
     -- | @
     --
-    -- [adim0, adim1] <- 'newAdims' ["adim0", "adim1"]
-    -- size0 <- 'newMap' "size0" adim0
-    -- size1 <- 'newMap' "size1" adim1
+    -- [rclass0, rclass1] <- 'newRClasses' ["rclass0", "rclass1"]
+    -- size0 <- 'newMap' "size0" rclass0
+    -- size1 <- 'newMap' "size1" rclass1
     --
-    -- let tensorShape = [adim0 '-->' size0, adim1 '-->' size1]
+    -- let tensorShape = [rclass0 '-->' size0, rclass1 '-->' size1]
     --
     -- tensor <- 'newTensor' "tensor" 'IntType' tensorShape
     -- @
 
-    -- | We first declared two @Adim@ identifiers @adim0@ and @adim1@. Then, we
-    -- declared @Map@ identifiers @size0@ and @size2@ on @adim0@ and @adim1@
+    -- | We first declared two @RClass@ identifiers @rclass0@ and @rclass1@. Then, we
+    -- declared @Map@ identifiers @size0@ and @size2@ on @rclass0@ and @rclass1@
     -- respectively. Then @tensorShape@ represents the shape of a tensor with 2
-    -- @Adims@, and the specified sizes. @adim0 '-->' size0@ represents that
-    -- @size0@ contains the sizes of individual-axes in @adim0@.
+    -- @RClasses@, and the specified sizes. @rclass0 '-->' size0@ represents that
+    -- @size0@ contains the sizes of individual-axes in @rclass0@.
     --
     -- We then created a tensor using 'newTensor', which takes a name for the
     -- tensor, the base element type (in this case 'IntType') and the tensor
@@ -119,61 +119,61 @@ module TensorRight
     -- refer to this tensor in expressions. The created tensor is said to
     -- contain symbolic integer elements, and is of shape @tensorShape@.
 
-    -- *** Duplicate Adims
+    -- *** Duplicate RClasses
 
-    -- | We could have multiple copies of the same @Adim@ in a tensor's shape. For
-    -- example, consider a tensor with 2 copies of @adim0@
+    -- | We could have multiple copies of the same @RClass@ in a tensor's shape. For
+    -- example, consider a tensor with 2 copies of @rclass0@
 
     -- | @
-    -- adim0 <- 'newAdim' "adim0"
-    -- [size, size'] <- 'newMaps' ["size", "size'"] adim0
-    -- let tensorShape = [adim0 '-->' size, adim0 '-->' size']
+    -- rclass0 <- 'newRClass' "rclass0"
+    -- [size, size'] <- 'newMaps' ["size", "size'"] rclass0
+    -- let tensorShape = [rclass0 '-->' size, rclass0 '-->' size']
     -- tensor <- 'newTensor' "tensor" IntType tensorShape
     -- @
 
-    -- | In such a case, if @adim0@ had \(k\) dimesions, then the tensor has
+    -- | In such a case, if @rclass0@ had \(k\) dimesions, then the tensor has
     -- \(2k\) dimensions. Let's say we wanted to operate on this tensor, like
-    -- reduce on one specific copy of @adim0@.
+    -- reduce on one specific copy of @rclass0@.
 
     -- | @
-    -- out <- 'reduce' tensor adim0
+    -- out <- 'reduce' tensor rclass0
     -- @
 
-    -- | It is unclear in this expression, which copy of @adim0@ gets reduced
+    -- | It is unclear in this expression, which copy of @rclass0@ gets reduced
     -- out -- is it the one with sizes @size@ or @size'@? To mitigate this
-    -- issue, we allow the user to diambiguate duplicate @Adims@ with labels,
-    -- and use those labels to refer to a specific @Adim@. We use the '@@'
+    -- issue, we allow the user to diambiguate duplicate @RClasses@ with labels,
+    -- and use those labels to refer to a specific @RClass@. We use the '@@'
     -- syntax to specify labels as follows. Labels are just strings.
 
     -- | @
-    -- let tensorShape = [adim0 '-->' size '@@' "label0", adim0 '-->' size' '@@' "label1"]
+    -- let tensorShape = [rclass0 '-->' size '@@' "label0", rclass0 '-->' size' '@@' "label1"]
     -- tensor <- 'newTensor' "tensor" 'IntType' tensorShape
     -- out <- 'reduce' tensor (ByLabel "label1")
     -- @
 
-    -- | Now, this expression is unambiguous and we know what @Adim@ to reduce
+    -- | Now, this expression is unambiguous and we know what @RClass@ to reduce
     -- on.
     --
-    -- Note that, in a tensor's shapes, if an @Adim@ identifier appears multiple
+    -- Note that, in a tensor's shapes, if an @RClass@ identifier appears multiple
     -- times, then all copies need to have a disambigutating label. So,
 
     -- | @
     -- let tensorShapeValid =
     --       [
-    --         adim0 '-->' size '@@' "label0",
-    --         adim0 '-->' size' '@@' "label1",
-    --         adim0 '-->' size '@@' "label2"
+    --         rclass0 '-->' size '@@' "label0",
+    --         rclass0 '-->' size' '@@' "label1",
+    --         rclass0 '-->' size '@@' "label2"
     --       ]
     -- let tensorShapeInvalid =
     --       [
-    --         adim0 '-->' size '@@' "label0",
-    --         adim0 '-->' size' '@@'
+    --         rclass0 '-->' size '@@' "label0",
+    --         rclass0 '-->' size' '@@'
     --       ]
     -- @
 
-    -- | @tensorShapeValid@ is a valid shape, since all copies of @adim0@ have a
+    -- | @tensorShapeValid@ is a valid shape, since all copies of @rclass0@ have a
     -- label, but the second shape is invalid. For the first shape, the user can
-    -- refer to the @Adims@ by @'ByLabel' "label0"@ for the first copy,
+    -- refer to the @RClasses@ by @'ByLabel' "label0"@ for the first copy,
     -- (@'ByLabel' "label1"@) for the second copy, and (@'ByLabel' "label2"@)
     -- for the third copy.
 
@@ -182,21 +182,21 @@ module TensorRight
     -- | @
     -- let tensorShapeValid =
     --       [
-    --         adim0 '-->' size0 '@@' "label0",
-    --         adim1 '-->' size1 '@@' "label1"
+    --         rclass0 '-->' size0 '@@' "label0",
+    --         rclass1 '-->' size1 '@@' "label1"
     --       ]
     -- let tensorShapeValid' =
     --       [
-    --         adim0 '-->' size0 '@@' "label0",
-    --         adim1 '-->' size1 '@@'
+    --         rclass0 '-->' size0 '@@' "label0",
+    --         rclass1 '-->' size1 '@@'
     --       ]
     -- @
 
     -- | Both of these shapes are valid, but the only difference is that we need
-    -- to use the label @label1@ to refer to @adim1@ in the first shape, while
-    -- in the second shape, we need to refer to it by @adim1@ itself. Note that
+    -- to use the label @label1@ to refer to @rclass1@ in the first shape, while
+    -- in the second shape, we need to refer to it by @rclass1@ itself. Note that
     -- there was no need to specify labels here, because there are no duplicate
-    -- @Adims@, but we allow the user the flexibility to use labels.
+    -- @RClasses@, but we allow the user the flexibility to use labels.
 
     -- ** Tensor expressions
 
@@ -209,9 +209,9 @@ module TensorRight
     -- | For example, you may construct a tensor expression as follows:
 
     -- | @
-    -- adim <- 'newAdim' "adim"
-    -- map <- 'newMap' "map" adim
-    -- tensor <- 'newTensor' "tensor" 'IntType' [adim '-->' map]
+    -- rclass <- 'newRClass' "rclass"
+    -- map <- 'newMap' "map" rclass
+    -- tensor <- 'newTensor' "tensor" 'IntType' [rclass '-->' map]
     -- expr <- 'intBinOp' 'Add' tensor tensor
     -- @
 
@@ -261,14 +261,14 @@ module TensorRight
     -- have all values as 0:
 
     -- | @
-    -- adim <- 'newAdim' "adim"
-    -- [size, padSize] <- 'newMap' ["size", "padSize"] adim
-    -- tensor <- 'newTensor' "t" 'IntType' [adim '-->' size]
+    -- rclass <- 'newRClass' "rclass"
+    -- [size, padSize] <- 'newMap' ["size", "padSize"] rclass
+    -- tensor <- 'newTensor' "t" 'IntType' [rclass '-->' size]
     -- lhs <- 'pad' tensor ('intElem' 0) $
     --   'Padding'
-    --     { low = [adim '-->' padSize],
-    --       interior = [adim '-->' padSize],
-    --       high = [adim '-->' padSize]
+    --     { low = [rclass '-->' padSize],
+    --       interior = [rclass '-->' padSize],
+    --       high = [rclass '-->' padSize]
     --     }
     -- 'precondition' [padSize] $ \[padSize] -> 'pointWiseCondition' (.==) padSize 0
     -- @
@@ -293,17 +293,17 @@ module TensorRight
 
     -- | The syntax to add si-relations is similar to preconditions -- we just
     -- need to use 'siRelation' instead of 'precondition'. For example, this
-    -- si-relation expresses that adim0lhssi == adim0rhssi:
+    -- si-relation expresses that rclass0lhssi == rclass0rhssi:
 
     -- | @
-    -- 'siRelation' [adim0lhssi, adim0rhssi] $
-    --   \[adim0lhssi, adim0rhssi] ->
-    --     'elementWiseCondition' (.==) adim0lhssi adim0rhssi
+    -- 'siRelation' [rclass0lhssi, rclass0rhssi] $
+    --   \[rclass0lhssi, rclass0rhssi] ->
+    --     'elementWiseCondition' (.==) rclass0lhssi rclass0rhssi
     -- @
 
     -- *** Rewrite rules
 
-    -- | Once we have declared all @Adim@ identifiers, @Map@ identifiers,
+    -- | Once we have declared all @RClass@ identifiers, @Map@ identifiers,
     -- @Tensor@ identifiers, created expressions and added preconditions, we can
     -- use the 'Rewrite' constructor to create a rewrite rule:
 
@@ -319,13 +319,13 @@ module TensorRight
     -- | @
     -- rule :: 'DSLContext' 'Rewrite'
     -- rule = do
-    --   adim <- 'newAdim' "adim"
-    --   map <- 'newMap' "map" adim
+    --   rclass <- 'newRClass' "rclass"
+    --   map <- 'newMap' "map" rclass
     --
-    --   tensor <- 'newTensor' "tensor" 'IntType' [adim '-->' map]
+    --   tensor <- 'newTensor' "tensor" 'IntType' [rclass '-->' map]
     --
-    --   constTensor1 <- 'constantInt' "a" [adim '-->' map]
-    --   constTensor2 <- 'constantInt' "b" [adim '-->' map]
+    --   constTensor1 <- 'constantInt' "a" [rclass '-->' map]
+    --   constTensor2 <- 'constantInt' "b" [rclass '-->' map]
     --   lhs <- 'intBinOp' 'Add' ('intBinOp' 'Add' tensor constTensor1) constTensor2
     --   rhs <- 'intBinOp' 'Add' tensor ('intBinOp' 'Add' constTensor1 constTensor2)
     --
@@ -356,7 +356,7 @@ module TensorRight
 
     -- | @
     -- 'monitorExprOnFailure' "lhs" lhs
-    -- 'monitorMapOnFailure' "low" (ByAdim spatial) low
+    -- 'monitorMapOnFailure' "low" (ByRClass spatial) low
     -- @
 
     -- * Rewriting rule context
@@ -369,9 +369,9 @@ module TensorRight
     rewrite,
 
     -- * Creation
-    AdimRef (..),
-    newAdim,
-    newAdims,
+    RClassRef (..),
+    newRClass,
+    newRClasses,
     newMap,
     newMaps,
     newNonNegMap,

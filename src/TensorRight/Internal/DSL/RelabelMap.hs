@@ -4,30 +4,30 @@
 module TensorRight.Internal.DSL.RelabelMap (IsRelabelMap (..), RelabelMapDesc (..)) where
 
 import qualified Data.HashMap.Lazy as HM
-import TensorRight.Internal.DSL.Identifier (AdimIdentifier)
-import TensorRight.Internal.DSL.Shape (AdimRef (ByAdim))
+import TensorRight.Internal.DSL.Identifier (RClassIdentifier)
+import TensorRight.Internal.DSL.Shape (RClassRef (ByRClass))
 import TensorRight.Internal.DSL.Syntax (ArrowSyntax ((-->)))
 
 class IsRelabelMap m where
-  toRelabelMap :: m -> HM.HashMap AdimRef AdimRef
+  toRelabelMap :: m -> HM.HashMap RClassRef RClassRef
 
-instance IsRelabelMap (HM.HashMap AdimRef AdimRef) where
+instance IsRelabelMap (HM.HashMap RClassRef RClassRef) where
   toRelabelMap = id
 
-data RelabelMapDesc = RelabelMapDesc AdimRef AdimRef
+data RelabelMapDesc = RelabelMapDesc RClassRef RClassRef
   deriving (Eq, Show)
 
 instance IsRelabelMap RelabelMapDesc where
-  toRelabelMap (RelabelMapDesc adim1 adim2) = HM.singleton adim1 adim2
+  toRelabelMap (RelabelMapDesc rclass1 rclass2) = HM.singleton rclass1 rclass2
 
 instance IsRelabelMap [RelabelMapDesc] where
   toRelabelMap = foldr (HM.union . toRelabelMap) HM.empty
 
-instance ArrowSyntax AdimIdentifier AdimRef RelabelMapDesc where
-  adim1 --> adim2 = RelabelMapDesc (ByAdim adim1) adim2
+instance ArrowSyntax RClassIdentifier RClassRef RelabelMapDesc where
+  rclass1 --> rclass2 = RelabelMapDesc (ByRClass rclass1) rclass2
 
-instance ArrowSyntax AdimIdentifier AdimIdentifier RelabelMapDesc where
-  adim1 --> adim2 = RelabelMapDesc (ByAdim adim1) (ByAdim adim2)
+instance ArrowSyntax RClassIdentifier RClassIdentifier RelabelMapDesc where
+  rclass1 --> rclass2 = RelabelMapDesc (ByRClass rclass1) (ByRClass rclass2)
 
-instance ArrowSyntax AdimRef AdimRef RelabelMapDesc where
-  ref --> adim = RelabelMapDesc ref adim
+instance ArrowSyntax RClassRef RClassRef RelabelMapDesc where
+  ref --> rclass = RelabelMapDesc ref rclass

@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 module TensorRight.Internal.DSL.DSL
-  ( AdimRef (..),
+  ( RClassRef (..),
     NumBinOp (..),
     BoolBinOp (..),
     NumUnaryOp (..),
@@ -27,11 +27,11 @@ module TensorRight.Internal.DSL.DSL
     intElem,
     boolElem,
     runDSLContext,
-    newAdim,
+    newRClass,
     newMap,
     newNonNegMap,
     newNonNegMaps,
-    newAdims,
+    newRClasses,
     newMaps,
     newTensor,
     numBinOp,
@@ -115,10 +115,10 @@ import TensorRight.Internal.DSL.Condition (Condition (Condition), zipCondition)
 import TensorRight.Internal.DSL.Expr
   ( ConvConfigArgsExpr
       ( ConvConfigArgsExpr,
-        batchAdims,
+        batchRClasses,
         contractingSIMaps,
-        featureAdims,
-        outputFeatureAdims,
+        featureRClasses,
+        outputFeatureRClasses,
         strides
       ),
     ConvPaddingArgsExpr (ConvPaddingArgsExpr, high, ldilation, low, rdilation),
@@ -162,29 +162,29 @@ import TensorRight.Internal.DSL.Expr
         UVar
       ),
     checkParamsWellFormed,
-    declaredAdims,
+    declaredRClasses,
     exprAbstractShapes,
     exprDTypes,
     exprId,
     exprs,
-    getAdimByMap,
+    getRClassByMap,
     internExpr,
     internWithCheck,
     lhsSIMaps,
-    mapAdims,
+    mapRClasses,
     monitorExprOnFailure,
     monitorMapOnFailure,
     preConditions,
     rhsSIMaps,
     runDSLContext,
     siRelations,
-    singletonAdims,
+    singletonRClasses,
     tensorDTypes,
     tensorShapes,
     validTensorShape,
   )
 import TensorRight.Internal.DSL.Identifier
-  ( AdimIdentifier,
+  ( RClassIdentifier,
     Identifier (SimpleIdentifier),
     MapIdentifier,
     nextIdentifier,
@@ -193,14 +193,14 @@ import TensorRight.Internal.DSL.Parameters (IsParamMaps (toParamMaps), ParamDesc
 import TensorRight.Internal.DSL.RelabelMap (IsRelabelMap (toRelabelMap), RelabelMapDesc)
 import TensorRight.Internal.DSL.Shape
   ( AbstractShape (AbstractShape, labelled, unlabelled),
-    AdimRef (ByAdim, ByLabel),
+    RClassRef (ByRClass, ByLabel),
     TensorShapeDesc,
     TensorShapeLike (toTensorShape),
     abstractShapeAllRefs,
-    addAdimByAdimRef,
+    addRClassByRClassRef,
     concatAbstractShape,
-    getAdimByAdimRef,
-    removeAdim,
+    getRClassByRClassRef,
+    removeRClass,
     restrictAbstractShape,
     toAbstractShape,
   )
@@ -230,77 +230,77 @@ shapeAndTypeOf expr = do
   ty <- typeOf expr
   return (shape, ty)
 
--- | Create an adim with a given name. The name doesn't have to be unique.
+-- | Create an rclass with a given name. The name doesn't have to be unique.
 -- TensorRight will rename them.
-newAdim :: T.Text -> DSLContext AdimIdentifier
-newAdim name = do
+newRClass :: T.Text -> DSLContext RClassIdentifier
+newRClass name = do
   env <- get
-  let adim = augment (declaredAdims env) $ SimpleIdentifier name
-  put $ env {declaredAdims = HS.insert adim (declaredAdims env)}
-  return adim
+  let rclass = augment (declaredRClasses env) $ SimpleIdentifier name
+  put $ env {declaredRClasses = HS.insert rclass (declaredRClasses env)}
+  return rclass
   where
-    augment declaredAdims ident =
-      if HS.member ident declaredAdims
-        then augment declaredAdims $ nextIdentifier ident
+    augment declaredRClasses ident =
+      if HS.member ident declaredRClasses
+        then augment declaredRClasses $ nextIdentifier ident
         else ident
 
--- | Create a list of adim with a list of names. The names don't have to be
+-- | Create a list of rclass with a list of names. The names don't have to be
 -- unique. TensorRight will rename them.
-newAdims :: [T.Text] -> DSLContext [AdimIdentifier]
-newAdims = traverse newAdim
+newRClasses :: [T.Text] -> DSLContext [RClassIdentifier]
+newRClasses = traverse newRClass
 
--- | Create a new map for a given adim. The map can be used as sizes or indices.
-newMap :: T.Text -> AdimIdentifier -> DSLContext MapIdentifier
-newMap name adim = do
+-- | Create a new map for a given rclass. The map can be used as sizes or indices.
+newMap :: T.Text -> RClassIdentifier -> DSLContext MapIdentifier
+newMap name rclass = do
   env <- get
-  let mapId = augment (mapAdims env) $ SimpleIdentifier name
-  put $ env {mapAdims = HM.insert mapId adim (mapAdims env)}
+  let mapId = augment (mapRClasses env) $ SimpleIdentifier name
+  put $ env {mapRClasses = HM.insert mapId rclass (mapRClasses env)}
   return mapId
   where
-    augment mapAdims ident =
-      if HM.member ident mapAdims
-        then augment mapAdims $ nextIdentifier ident
+    augment mapRClasses ident =
+      if HM.member ident mapRClasses
+        then augment mapRClasses $ nextIdentifier ident
         else ident
 
--- | Create a list of maps for a given adim. The maps can be used as sizes or
+-- | Create a list of maps for a given rclass. The maps can be used as sizes or
 -- indices.
-newMaps :: [T.Text] -> AdimIdentifier -> DSLContext [MapIdentifier]
-newMaps names adim = traverse (`newMap` adim) names
+newMaps :: [T.Text] -> RClassIdentifier -> DSLContext [MapIdentifier]
+newMaps names rclass = traverse (`newMap` rclass) names
 
 -- | Create a new map for a given map. The map can be used as sizes or indices.
 -- The contents of the map are assumed to be non-negative.
-newNonNegMap :: T.Text -> AdimIdentifier -> DSLContext MapIdentifier
-newNonNegMap name adim = do
-  map <- newMap name adim
+newNonNegMap :: T.Text -> RClassIdentifier -> DSLContext MapIdentifier
+newNonNegMap name rclass = do
+  map <- newMap name rclass
   precondition [map] $ \[m] -> m .>= 0
   return map
 
--- | Create a list of maps for a given adim. The maps can be used as sizes or
+-- | Create a list of maps for a given rclass. The maps can be used as sizes or
 -- indices. The contents of the maps are assumed to be non-negative.
-newNonNegMaps :: [T.Text] -> AdimIdentifier -> DSLContext [MapIdentifier]
-newNonNegMaps names adim = traverse (`newNonNegMap` adim) names
+newNonNegMaps :: [T.Text] -> RClassIdentifier -> DSLContext [MapIdentifier]
+newNonNegMaps names rclass = traverse (`newNonNegMap` rclass) names
 
 -- | Create a new map for a given map. The map can be used as sizes or indices.
 -- The contents of the map are assumed to be a specific constant number.
-newConstMap :: T.Text -> SymInteger -> AdimIdentifier -> DSLContext MapIdentifier
-newConstMap name c adim = do
-  map <- newMap name adim
+newConstMap :: T.Text -> SymInteger -> RClassIdentifier -> DSLContext MapIdentifier
+newConstMap name c rclass = do
+  map <- newMap name rclass
   precondition [map] $ \[m] -> m .== c
   return map
 
--- | Create a list of maps for a given adim. The maps can be used as sizes or
+-- | Create a list of maps for a given rclass. The maps can be used as sizes or
 -- indices. The contents of the maps are assumed to be a specific constant
 -- number.
-newConstMaps :: [T.Text] -> SymInteger -> AdimIdentifier -> DSLContext [MapIdentifier]
-newConstMaps names c adim = traverse (\name -> newConstMap name c adim) names
+newConstMaps :: [T.Text] -> SymInteger -> RClassIdentifier -> DSLContext [MapIdentifier]
+newConstMaps names c rclass = traverse (\name -> newConstMap name c rclass) names
 
 -- | Create a new map where its contents are the sum of the contents of the
--- provided maps. The maps must have the same adim.
+-- provided maps. The maps must have the same rclass.
 sumMap :: T.Text -> [MapIdentifier] -> DSLContext MapIdentifier
 sumMap name = combineMap name sum
 
 -- | Create a new map where its contents are the combination of the contents of
--- the provided maps. The maps must have the same adim.
+-- the provided maps. The maps must have the same rclass.
 --
 -- The combination is done with a function.
 combineMap ::
@@ -310,10 +310,10 @@ combineMap ::
   DSLContext MapIdentifier
 combineMap _ _ [] = throwError "Cannot combine an empty list of maps"
 combineMap name f (m : maps) = do
-  adim <- getAdimByMap m
-  adims <- traverse getAdimByMap maps
-  assert "All maps must have the same adim" $ all (== adim) adims
-  r <- newMap name adim
+  rclass <- getRClassByMap m
+  rclasses <- traverse getRClassByMap maps
+  assert "All maps must have the same rclass" $ all (== rclass) rclasses
+  r <- newMap name rclass
   precondition (r : m : maps) $ \(r' : ms) -> r' .== f ms
   return r
 
@@ -368,7 +368,7 @@ newTensor ::
   (ToDType a) =>
   -- | Name
   T.Text ->
-  -- | Shape, e.g., [adim --> map] or [adim --> map, adim1 --> map1 @@ label]
+  -- | Shape, e.g., [rclass --> map] or [rclass --> map, rclass1 --> map1 @@ label]
   [TensorShapeDesc] ->
   DSLContext Expr
 newTensor name shapeLike = do
@@ -542,15 +542,15 @@ boolUnaryOp op expr' = do
 -- | Reduce operation. The expression must have the dtype 'IntType'.
 --
 -- The description of the si-indices (i.e., the @'ParamDesc'@), can either be
--- @<adim> '-->' <map>@ or @ByLabel <label> '-->' <map>@.
+-- @<rclass> '-->' <map>@ or @ByLabel <label> '-->' <map>@.
 --
--- Each sum index specifies the adim to be reduced and the map to be used for
--- the si-indices. This can be done by either providing an 'Adim' identifier, or
+-- Each sum index specifies the rclass to be reduced and the map to be used for
+-- the si-indices. This can be done by either providing an 'RClass' identifier, or
 -- a label.
 --
--- Note that the reference needs to be @'ByLabel' <label>@ for labelled @Adims@,
--- or an @<adim>@ otherwise. This is different from 'TensorShapeDesc', where you
--- need to provide the labels with the @Adim@.
+-- Note that the reference needs to be @'ByLabel' <label>@ for labelled @RClasses@,
+-- or an @<rclass>@ otherwise. This is different from 'TensorShapeDesc', where you
+-- need to provide the labels with the @RClass@.
 reduce ::
   (ExprInContext e) =>
   -- | The expression to perform the reduction on.
@@ -566,7 +566,7 @@ reduce expr' m = do
     ty <- typeOf expr
     assert "Expression must be int or real" $ ty `elem` [IntType, RealType]
     checkParamsWellFormed shape siMap
-    reducedShape <- foldM removeAdim shape $ HM.keys siMap
+    reducedShape <- foldM removeRClass shape $ HM.keys siMap
     return (reducedShape, ty)
 
 -- | Broadcast operation.
@@ -604,27 +604,27 @@ constant i shapeDesc = do
 checkParamsCoverAbstractShape :: AbstractShape -> Params -> DSLContext ()
 checkParamsCoverAbstractShape AbstractShape {..} params = do
   let foldingFunc ref (l, u) = case ref of
-        ByAdim adim -> (l, adim : u)
+        ByRClass rclass -> (l, rclass : u)
         ByLabel label -> (label : l, u)
-  let (labels, adims) = HS.foldr foldingFunc ([], []) $ HM.keysSet params
+  let (labels, rclasses) = HS.foldr foldingFunc ([], []) $ HM.keysSet params
   assert "Incorrect labels provided in parameters" $ HS.fromList labels == HM.keysSet labelled
-  assert "Incorrect adims provided in parameters" $ HS.fromList adims == unlabelled
+  assert "Incorrect rclasses provided in parameters" $ HS.fromList rclasses == unlabelled
 
 -- | Iota operation.
 iota ::
   -- | The shape of the tensor.
   [TensorShapeDesc] ->
-  -- | The @Adim@ along which the tensor values increment by one.
-  AdimRef ->
+  -- | The @RClass@ along which the tensor values increment by one.
+  RClassRef ->
   DSLContext Expr
 iota shapeDesc d = do
   shape <- toTensorShape shapeDesc
   internWithCheck (UIota shape d) $ do
     validTensorShape shape
     let abstractShape = toAbstractShape shape
-    adim <- getAdimByAdimRef abstractShape d
+    rclass <- getRClassByRClassRef abstractShape d
     env <- get
-    put $ env {singletonAdims = HS.insert adim (singletonAdims env)}
+    put $ env {singletonRClasses = HS.insert rclass (singletonRClasses env)}
     return (abstractShape, IntType)
 
 -- | The named arguments to the 'slice' operation.
@@ -644,16 +644,16 @@ class SliceFun a where
   -- @
   -- slice tensor $
   --   Slice {
-  --     start = [adim --> startMap],
-  --     end = [adim --> map],
-  --     strides = [adim --> map]
+  --     start = [rclass --> startMap],
+  --     end = [rclass --> map],
+  --     strides = [rclass --> map]
   --   }
   -- @
   --
   -- or
   --
   -- @
-  -- slice tensor [adim --> startMap] [adim --> endMap] [adim --> strideMap]
+  -- slice tensor [rclass --> startMap] [rclass --> endMap] [rclass --> strideMap]
   -- @
   slice ::
     (ExprInContext e) =>
@@ -688,14 +688,14 @@ sliceImpl expr' Slice {..} = do
     $ do
       shape <- shapeOf expr
       ty <- typeOf expr
-      assert "start must have the same Adims as end" $ HM.keysSet ms == HM.keysSet me
-      assert "start must have the same Adims as strides" $ HM.keysSet ms == HM.keysSet mp
+      assert "start must have the same RClasses as end" $ HM.keysSet ms == HM.keysSet me
+      assert "start must have the same RClasses as strides" $ HM.keysSet ms == HM.keysSet mp
       checkParamsWellFormed shape ms
       checkParamsWellFormed shape me
       checkParamsWellFormed shape mp
-      -- Check if the AdimRefs are in the tensor shape
-      -- We are allowed to slice a part of the adims
-      mapM_ (getAdimByAdimRef shape) $ HM.keys ms
+      -- Check if the RClassRefs are in the tensor shape
+      -- We are allowed to slice a part of the rclasses
+      mapM_ (getRClassByRClassRef shape) $ HM.keys ms
       return (shape, ty)
 
 -- | The named arguments to the 'pad' operation.
@@ -735,16 +735,16 @@ class PaddingFun a where
   -- @
   -- pad tensor (intElem 0) $
   --   Padding {
-  --     low = [adim --> lowMap],
-  --     interior = [adim --> intMap],
-  --     high = [adim --> highMap]
+  --     low = [rclass --> lowMap],
+  --     interior = [rclass --> intMap],
+  --     high = [rclass --> highMap]
   --   }
   -- @
   --
   -- or
   --
   -- @
-  -- pad tensor (intElem 0) [adim --> lowMap] [adim --> intMap] [adim --> highMap]
+  -- pad tensor (intElem 0) [rclass --> lowMap] [rclass --> intMap] [rclass --> highMap]
   -- @
   pad ::
     (ExprInContext e, ToElem v, ToDType v) =>
@@ -790,9 +790,9 @@ padLow expr' elem low = do
 
 -- | Named arguments to the 'convBase' and 'conv' operation.
 data ConvConfig = ConvConfig
-  { batchAdims :: [AdimRef],
-    featureAdims :: [AdimRef],
-    outputFeatureAdims :: [AdimRef],
+  { batchRClasses :: [RClassRef],
+    featureRClasses :: [RClassRef],
+    outputFeatureRClasses :: [RClassRef],
     strides :: [ParamDesc],
     contractingSIMaps :: [ParamDesc]
   }
@@ -807,11 +807,11 @@ class ConvBaseFun a where
   -- @
   -- convBase input weights $
   --   ConvConfig {
-  --     batchAdims = [ByAdim batch],
-  --     featureAdims = [ByAdim feature],
-  --     outputFeatureAdims = [ByAdim outputFeature],
-  --     strides = [adim --> strideMap],
-  --     contractingSIMaps = [adim --> siMap]
+  --     batchRClasses = [ByRClass batch],
+  --     featureRClasses = [ByRClass feature],
+  --     outputFeatureRClasses = [ByRClass outputFeature],
+  --     strides = [rclass --> strideMap],
+  --     contractingSIMaps = [rclass --> siMap]
   --   }
   -- @
   --
@@ -821,11 +821,11 @@ class ConvBaseFun a where
   -- convBase
   --   input
   --   weights
-  --   [ByAdim batch]
-  --   [ByAdim feature]
-  --   [ByAdim outputFeature]
-  --   [adim --> strideMap]
-  --   [adim --> siMap]
+  --   [ByRClass batch]
+  --   [ByRClass feature]
+  --   [ByRClass outputFeature]
+  --   [rclass --> strideMap]
+  --   [rclass --> siMap]
   -- @
   convBase ::
     (ExprInContext input, ExprInContext weights) =>
@@ -835,7 +835,7 @@ class ConvBaseFun a where
     weights ->
     -- | The next argument. Could be a 'ConvConfig', and return a
     -- @'DSLContext' 'Expr'@, or it could be
-    -- @['AdimRef'] -> ['AdimRef'] -> ['AdimRef'] -> ['ParamDesc'] -> ['ParamDesc'] -> 'DSLContext' 'Expr'@,
+    -- @['RClassRef'] -> ['RClassRef'] -> ['RClassRef'] -> ['ParamDesc'] -> ['ParamDesc'] -> 'DSLContext' 'Expr'@,
     -- without the names. We recommend using named arguments all the time.
     a ->
     ConvBaseRes a
@@ -844,13 +844,13 @@ instance ConvBaseFun ConvConfig where
   type ConvBaseRes ConvConfig = DSLContext Expr
   convBase = convBaseImpl
 
-instance (a ~ AdimRef) => ConvBaseFun [a] where
+instance (a ~ RClassRef) => ConvBaseFun [a] where
   type
     ConvBaseRes [a] =
-      [AdimRef] -> [AdimRef] -> [ParamDesc] -> [ParamDesc] -> DSLContext Expr
-  convBase input weights batch feature outputFeatureAdims strides siMaps =
+      [RClassRef] -> [RClassRef] -> [ParamDesc] -> [ParamDesc] -> DSLContext Expr
+  convBase input weights batch feature outputFeatureRClasses strides siMaps =
     convBaseImpl input weights $
-      ConvConfig batch feature outputFeatureAdims strides siMaps
+      ConvConfig batch feature outputFeatureRClasses strides siMaps
 
 -- | Padding for the 'conv' operation.
 data ConvPadding = ConvPadding
@@ -871,17 +871,17 @@ class ConvFun a where
   -- @
   -- conv input weights $
   --   ConvConfig {
-  --     batchAdims = [ByAdim batch],
-  --     featureAdims = [ByAdim feature],
-  --     outputFeatureAdims = [ByAdim outputFeature],
-  --     strides = [adim --> strideMap],
-  --     contractingSIMaps = [adim --> siMap]
+  --     batchRClasses = [ByRClass batch],
+  --     featureRClasses = [ByRClass feature],
+  --     outputFeatureRClasses = [ByRClass outputFeature],
+  --     strides = [rclass --> strideMap],
+  --     contractingSIMaps = [rclass --> siMap]
   --   }
   --   ConvPadding {
-  --     low = [adim --> lowMap],
-  --     ldilation = [adim --> ldilationMap],
-  --     high = [adim --> highMap],
-  --     rdilation = [adim --> rdilationMap]
+  --     low = [rclass --> lowMap],
+  --     ldilation = [rclass --> ldilationMap],
+  --     high = [rclass --> highMap],
+  --     rdilation = [rclass --> rdilationMap]
   --   }
   -- @
   --
@@ -899,11 +899,11 @@ instance ConvFun ConvConfig where
   type ConvRes ConvConfig = ConvPadding -> DSLContext Expr
   conv = convImpl
 
-instance (a ~ AdimRef) => ConvFun [a] where
+instance (a ~ RClassRef) => ConvFun [a] where
   type
     ConvRes [a] =
-      [AdimRef] ->
-      [AdimRef] ->
+      [RClassRef] ->
+      [RClassRef] ->
       [ParamDesc] ->
       [ParamDesc] ->
       [ParamDesc] ->
@@ -917,7 +917,7 @@ instance (a ~ AdimRef) => ConvFun [a] where
     weights
     batch
     feature
-    outputFeatureAdims
+    outputFeatureRClasses
     strides
     siMaps
     low
@@ -927,7 +927,7 @@ instance (a ~ AdimRef) => ConvFun [a] where
       convImpl
         input
         weights
-        (ConvConfig batch feature outputFeatureAdims strides siMaps)
+        (ConvConfig batch feature outputFeatureRClasses strides siMaps)
         (ConvPadding low ldilation high rdilation)
 
 padImpl ::
@@ -965,15 +965,15 @@ class DySliceFun a where
   -- @
   -- dynamicSlice tensor $
   --   DySlice {
-  --     start = [adim --> startMap],
-  --     sizes = [adim --> sizeMap]
+  --     start = [rclass --> startMap],
+  --     sizes = [rclass --> sizeMap]
   --  }
   -- @
   --
   -- or
   --
   -- @
-  -- dynamicSlice tensor [adim --> startMap] [adim --> sizeMap]
+  -- dynamicSlice tensor [rclass --> startMap] [rclass --> sizeMap]
   -- @
   dynamicSlice :: (ExprInContext e) => e -> a -> DySliceRes a
 
@@ -997,12 +997,12 @@ dynamicSliceImpl expr' DySlice {..} = do
   internWithCheck (UDynamicSlice expr $ DySliceArgsExpr {start = s, sizes = z}) $ do
     shape <- shapeOf expr
     ty <- typeOf expr
-    assert "start must have the same Adims as sizes" $ HM.keysSet s == HM.keysSet z
+    assert "start must have the same RClasses as sizes" $ HM.keysSet s == HM.keysSet z
     checkParamsWellFormed shape s
     checkParamsWellFormed shape z
-    -- Check if the AdimRefs are in the tensor shape
-    -- We are allowed to slice a part of the adims
-    mapM_ (getAdimByAdimRef shape) $ HM.keys s
+    -- Check if the RClassRefs are in the tensor shape
+    -- We are allowed to slice a part of the rclasses
+    mapM_ (getRClassByRClassRef shape) $ HM.keys s
     return (shape, ty)
 
 -- | Dynamic update slice operation.
@@ -1024,10 +1024,10 @@ dynamicUpdateSlice expr' update' start = do
     ty <- typeOf expr
     updateShape <- shapeOf update
     updateTy <- typeOf update
-    assert "update must have the same adims as original" $ shape == updateShape
+    assert "update must have the same rclasses as original" $ shape == updateShape
     assert "update must have the same type as original" $ ty == updateTy
     checkParamsWellFormed shape s
-    -- The adim refs in the start params must cover the tensor shape
+    -- The rclass refs in the start params must cover the tensor shape
     checkParamsCoverAbstractShape shape s
     return (shape, ty)
 
@@ -1038,8 +1038,8 @@ concatTensor ::
   lhs ->
   -- | The right-hand side tensor.
   rhs ->
-  -- | The adim to concat on.
-  AdimRef ->
+  -- | The rclass to concat on.
+  RClassRef ->
   DSLContext Expr
 concatTensor lhs' rhs' d = do
   lhs <- liftInContext lhs'
@@ -1049,11 +1049,11 @@ concatTensor lhs' rhs' d = do
     shapeRhs <- shapeOf rhs
     tyLhs <- typeOf lhs
     tyRhs <- typeOf rhs
-    assert "lhs and rhs must have the same adims" $ shapeLhs == shapeRhs
+    assert "lhs and rhs must have the same rclasses" $ shapeLhs == shapeRhs
     assert "lhs and rhs must have the same type" $ tyLhs == tyRhs
-    adim <- getAdimByAdimRef shapeLhs d
+    rclass <- getRClassByRClassRef shapeLhs d
     env <- get
-    put $ env {singletonAdims = HS.insert adim (singletonAdims env)}
+    put $ env {singletonRClasses = HS.insert rclass (singletonRClasses env)}
     return (shapeLhs, tyLhs)
 
 -- | Concatenate a list of tensors.
@@ -1061,8 +1061,8 @@ concatTensorList ::
   (ExprInContext e) =>
   -- | The list of tensors to concatenate.
   [e] ->
-  -- | The adim to concat on.
-  AdimRef ->
+  -- | The rclass to concat on.
+  RClassRef ->
   DSLContext Expr
 concatTensorList exprs' d = do
   assert "concatTensorList cannot be empty" $ not $ null exprs'
@@ -1070,11 +1070,11 @@ concatTensorList exprs' d = do
   internWithCheck (UConcatList exprs d) $ do
     shapes <- traverse shapeOf exprs
     tys <- traverse typeOf exprs
-    assert "All tensors in concatList must have the same Adims" $ all (== head shapes) shapes
+    assert "All tensors in concatList must have the same RClasses" $ all (== head shapes) shapes
     assert "All tensors in concatList must have the same type" $ all (== head tys) tys
-    adim <- getAdimByAdimRef (head shapes) d
+    rclass <- getRClassByRClassRef (head shapes) d
     env <- get
-    put $ env {singletonAdims = HS.insert adim (singletonAdims env)}
+    put $ env {singletonRClasses = HS.insert rclass (singletonRClasses env)}
     return (head shapes, head tys)
 
 -- | Relabel operation.
@@ -1082,7 +1082,7 @@ relabel ::
   (ExprInContext e) =>
   -- | The tensor to relabel.
   e ->
-  -- | The relabel map. Should be @[adim --> 'ByLabel' label]@ or
+  -- | The relabel map. Should be @[rclass --> 'ByLabel' label]@ or
   -- @['ByLabel' label -> 'ByLabel' label, ...]@.
   [RelabelMapDesc] ->
   DSLContext Expr
@@ -1099,15 +1099,15 @@ relabel expr' relabelMapDescs = do
           relabelMap
             <> HM.fromList
               ((\ref -> (ref, ref)) <$> HS.toList notRelabelledRefs)
-    assert "no two axes mapped to the same adim+label" $
+    assert "no two axes mapped to the same rclass+label" $
       HS.size (HS.fromList $ HM.elems augmentedRelabelMap)
         == HM.size augmentedRelabelMap
 
     newShape <-
       foldM
         ( \newShape (from, to) -> do
-            adim <- getAdimByAdimRef shape from
-            addAdimByAdimRef newShape to adim
+            rclass <- getRClassByRClassRef shape from
+            addRClassByRClassRef newShape to rclass
         )
         (AbstractShape HM.empty HS.empty)
         (HM.toList augmentedRelabelMap)
@@ -1123,34 +1123,34 @@ dot ::
   rhs ->
   -- | The contracting SI maps.
   [ParamDesc] ->
-  -- | The batch adims.
-  [AdimRef] ->
+  -- | The batch rclasses.
+  [RClassRef] ->
   DSLContext Expr
-dot lhs rhs contractingSIMapsDesc batchAdims = do
+dot lhs rhs contractingSIMapsDesc batchRClasses = do
   lhs' <- liftInContext lhs
   rhs' <- liftInContext rhs
   let contractingSIMaps = toParamMaps contractingSIMapsDesc
-  internWithCheck (UDot lhs' rhs' contractingSIMaps batchAdims) $ do
+  internWithCheck (UDot lhs' rhs' contractingSIMaps batchRClasses) $ do
     shapeLhs <- shapeOf lhs'
     shapeRhs <- shapeOf rhs'
     tyLhs <- typeOf lhs'
     tyRhs <- typeOf rhs'
     assert "lhs must be integer or real type" $ tyLhs `elem` [IntType, RealType]
     assert "rhs must be the same as lhs type" $ tyRhs == tyLhs
-    assert "Contracting and batch adims must be disjoint" $
+    assert "Contracting and batch rclasses must be disjoint" $
       HS.null $
-        HS.intersection (HS.fromList batchAdims) (HM.keysSet contractingSIMaps)
-    let dotAllRefs = HM.keysSet contractingSIMaps <> HS.fromList batchAdims
+        HS.intersection (HS.fromList batchRClasses) (HM.keysSet contractingSIMaps)
+    let dotAllRefs = HM.keysSet contractingSIMaps <> HS.fromList batchRClasses
     let lhsAllRefs = abstractShapeAllRefs shapeLhs
     let rhsAllRefs = abstractShapeAllRefs shapeRhs
     assert
-      ( "Contracion + batch adims must be exactly the interaction of lhs and "
-          <> "rhs adims"
+      ( "Contracion + batch rclasses must be exactly the interaction of lhs and "
+          <> "rhs rclasses"
       )
       $ dotAllRefs == HS.intersection lhsAllRefs rhsAllRefs
     checkParamsWellFormed shapeLhs contractingSIMaps
-    lhsRemoved <- foldM removeAdim shapeLhs dotAllRefs
-    rhsRemoved <- foldM removeAdim shapeRhs $ HM.keysSet contractingSIMaps
+    lhsRemoved <- foldM removeRClass shapeLhs dotAllRefs
+    rhsRemoved <- foldM removeRClass shapeRhs $ HM.keysSet contractingSIMaps
     finalShape <- concatAbstractShape lhsRemoved rhsRemoved
     return (finalShape, tyLhs)
 
@@ -1165,46 +1165,46 @@ convBaseCheck
   ConvConfig {..} = do
     let stridesMap = toParamMaps strides
         siMapsMap = toParamMaps contractingSIMaps
-        batchAdimsSet = HS.fromList batchAdims
-        featureAdimsSet = HS.fromList featureAdims
-        outputFeatureAdimsSet = HS.fromList outputFeatureAdims
+        batchRClassesSet = HS.fromList batchRClasses
+        featureRClassesSet = HS.fromList featureRClasses
+        outputFeatureRClassesSet = HS.fromList outputFeatureRClasses
     assert "input must be int or real type" $ tyInput `elem` [IntType, RealType]
     assert "weights must be the same as input type" $ tyWeights == tyInput
-    let inputAdims = abstractShapeAllRefs shapeInput
-    let weightAdims = abstractShapeAllRefs shapeWeights
-    assert "batch adims should be input adims - weight adims" $
-      batchAdimsSet == inputAdims `HS.difference` weightAdims
-    assert "output feature adims should be weight adims - input adims" $
-      outputFeatureAdimsSet == weightAdims `HS.difference` inputAdims
+    let inputRClasses = abstractShapeAllRefs shapeInput
+    let weightRClasses = abstractShapeAllRefs shapeWeights
+    assert "batch rclasses should be input rclasses - weight rclasses" $
+      batchRClassesSet == inputRClasses `HS.difference` weightRClasses
+    assert "output feature rclasses should be weight rclasses - input rclasses" $
+      outputFeatureRClassesSet == weightRClasses `HS.difference` inputRClasses
     assert
       ( "input feature should be in the intersection of input and weight "
-          <> "adims"
+          <> "rclasses"
       )
-      $ HS.isSubsetOf featureAdimsSet
-      $ inputAdims `HS.intersection` weightAdims
+      $ HS.isSubsetOf featureRClassesSet
+      $ inputRClasses `HS.intersection` weightRClasses
 
-    let inputAdims = abstractShapeAllRefs shapeInput
-    let weightAdims = abstractShapeAllRefs shapeWeights
-    assert "batch adims must be input axes - weight axes" $
-      batchAdimsSet == inputAdims `HS.difference` weightAdims
-    assert "output feature adims must be weight adims - input adims" $
-      outputFeatureAdimsSet == weightAdims `HS.difference` inputAdims
+    let inputRClasses = abstractShapeAllRefs shapeInput
+    let weightRClasses = abstractShapeAllRefs shapeWeights
+    assert "batch rclasses must be input axes - weight axes" $
+      batchRClassesSet == inputRClasses `HS.difference` weightRClasses
+    assert "output feature rclasses must be weight rclasses - input rclasses" $
+      outputFeatureRClassesSet == weightRClasses `HS.difference` inputRClasses
 
     assert
       "input feature should be in the intersection of input and weight axes"
-      $ featureAdimsSet
-        `HS.isSubsetOf` (inputAdims `HS.intersection` weightAdims)
-    let spatialAdims =
-          inputAdims `HS.difference` (batchAdimsSet <> featureAdimsSet)
+      $ featureRClassesSet
+        `HS.isSubsetOf` (inputRClasses `HS.intersection` weightRClasses)
+    let spatialRClasses =
+          inputRClasses `HS.difference` (batchRClassesSet <> featureRClassesSet)
     assert "strides must have the same axes as spatial axes" $
-      HS.fromList (HM.keys stridesMap) == spatialAdims
+      HS.fromList (HM.keys stridesMap) == spatialRClasses
     checkParamsWellFormed shapeInput stridesMap
     checkParamsWellFormed shapeInput siMapsMap
 
-    resultShapeBatch <- restrictAbstractShape shapeInput batchAdimsSet
+    resultShapeBatch <- restrictAbstractShape shapeInput batchRClassesSet
     resultShapeOutputFeature <-
-      restrictAbstractShape shapeWeights outputFeatureAdimsSet
-    resultSpatialShape <- restrictAbstractShape shapeInput spatialAdims
+      restrictAbstractShape shapeWeights outputFeatureRClassesSet
+    resultSpatialShape <- restrictAbstractShape shapeInput spatialRClasses
     resultShape <-
       concatAbstractShape resultShapeBatch resultSpatialShape
         >>= concatAbstractShape resultShapeOutputFeature
@@ -1227,9 +1227,9 @@ convBaseImpl
     internWithCheck
       ( UConvBase input weights $
           ConvConfigArgsExpr
-            { batchAdims = batchAdims,
-              featureAdims = featureAdims,
-              outputFeatureAdims = outputFeatureAdims,
+            { batchRClasses = batchRClasses,
+              featureRClasses = featureRClasses,
+              outputFeatureRClasses = outputFeatureRClasses,
               strides = stridesMap,
               contractingSIMaps = siMapsMap
             }
@@ -1264,9 +1264,9 @@ convImpl
           input
           weights
           ConvConfigArgsExpr
-            { batchAdims = batchAdims,
-              featureAdims = featureAdims,
-              outputFeatureAdims = outputFeatureAdims,
+            { batchRClasses = batchRClasses,
+              featureRClasses = featureRClasses,
+              outputFeatureRClasses = outputFeatureRClasses,
               strides = stridesMap,
               contractingSIMaps = siMapsMap
             }
@@ -1283,7 +1283,7 @@ convImpl
           IntType -> return $ toElem (0 :: TensorInt)
           RealType -> return $ toElem (0 :: TensorReal)
           BoolType -> mrgThrowError "Cannot conv a boolean tensor"
-        -- Only check adims
+        -- Only check rclasses
         inputPaddedShapeTy <-
           padCheck inputShapeTy padElem $
             Padding {low = low, interior = ldilation, high = high}
@@ -1369,26 +1369,26 @@ select c' t' e' = do
 reshapeDegenerate ::
   (ExprInContext e) =>
   e ->
-  [(AdimRef, AdimIdentifier)] ->
-  [AdimRef] ->
+  [(RClassRef, RClassIdentifier)] ->
+  [RClassRef] ->
   DSLContext Expr
-reshapeDegenerate e' introAdims elimAdims = do
+reshapeDegenerate e' introRClasses elimRClasses = do
   e <- liftInContext e'
-  internWithCheck (UReshapeDegenerate e introAdims elimAdims) $ do
+  internWithCheck (UReshapeDegenerate e introRClasses elimRClasses) $ do
     shape <- shapeOf e
     ty <- typeOf e
     let allRefs = abstractShapeAllRefs shape
-    assert "elimAdims must be a subset of all axes" $
-      HS.fromList elimAdims `HS.isSubsetOf` allRefs
-    assert "introAdims must not overlap with the set of all axes" $
+    assert "elimRClasses must be a subset of all axes" $
+      HS.fromList elimRClasses `HS.isSubsetOf` allRefs
+    assert "introRClasses must not overlap with the set of all axes" $
       HS.null $
-        HS.fromList (fst <$> introAdims) `HS.intersection` allRefs
+        HS.fromList (fst <$> introRClasses) `HS.intersection` allRefs
     newShape0 <-
       foldM
-        (uncurry . addAdimByAdimRef)
+        (uncurry . addRClassByRClassRef)
         shape
-        introAdims
-    newShape <- foldM removeAdim newShape0 elimAdims
+        introRClasses
+    newShape <- foldM removeRClass newShape0 elimRClasses
     return (newShape, ty)
 
 -- | Reverse operation.
@@ -1397,16 +1397,16 @@ reverseTensor ::
   -- | The tensor to reverse.
   e ->
   -- | The axes to reverse on.
-  [AdimRef] ->
+  [RClassRef] ->
   DSLContext Expr
-reverseTensor e' adims = do
+reverseTensor e' rclasses = do
   e <- liftInContext e'
-  internWithCheck (UReverseTensor e adims) $ do
+  internWithCheck (UReverseTensor e rclasses) $ do
     shape <- shapeOf e
     ty <- typeOf e
     let allRefs = abstractShapeAllRefs shape
-    assert "adims must be a subset of all axes" $
-      HS.fromList adims `HS.isSubsetOf` allRefs
+    assert "rclasses must be a subset of all axes" $
+      HS.fromList rclasses `HS.isSubsetOf` allRefs
     return (shape, ty)
 
 type ValidElem a = (IsString a, ToElem a, ToDType a)

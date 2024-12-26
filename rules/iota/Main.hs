@@ -4,11 +4,11 @@ import TensorRight
 
 rule01 :: DSLContext Rewrite
 rule01 = do
-  adim <- newAdim "adim"
-  size <- newConstMap "size" 1 adim
+  rclass <- newRClass "rclass"
+  size <- newConstMap "size" 1 rclass
 
-  lhs <- iota [adim --> size] (ByAdim adim)
-  rhs <- constant @TensorInt 0 [adim --> size]
+  lhs <- iota [rclass --> size] (ByRClass rclass)
+  rhs <- constant @TensorInt 0 [rclass --> size]
   rewrite "Iota ⇒ Zero" lhs rhs
 
 main :: IO ()

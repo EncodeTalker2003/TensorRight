@@ -7,7 +7,7 @@ class ArrowSyntax a b c where
   (-->) :: a -> b -> c
   infix 8 -->
 
--- | Syntax for labelling an adim.
+-- | Syntax for labelling an rclass.
 class AtSyntax a b c | c -> a b where
   (@@) :: a -> b -> c
   infix 7 @@

@@ -9,7 +9,7 @@
 module TensorRight.Internal.DSL.Identifier
   ( IdentifierKind (..),
     Identifier (..),
-    AdimIdentifier,
+    RClassIdentifier,
     MapIdentifier,
     Label,
     TensorIdentifier,
@@ -25,7 +25,7 @@ import GHC.Generics (Generic)
 import Grisette (PPrint (pformat))
 import Language.Haskell.TH.Syntax (Lift)
 
-data IdentifierKind = AdimKind | MapKind | TensorKind
+data IdentifierKind = RClassKind | MapKind | TensorKind
 
 data Identifier (kind :: IdentifierKind)
   = SimpleIdentifier T.Text
@@ -44,7 +44,7 @@ instance PPrint (Identifier kind) where
   pformat (SimpleIdentifier name) = pformat name
   pformat (IndexedIdentifier name i) = pformat name <> "@" <> pformat i
 
-type AdimIdentifier = Identifier 'AdimKind
+type RClassIdentifier = Identifier 'RClassKind
 
 type MapIdentifier = Identifier 'MapKind
 

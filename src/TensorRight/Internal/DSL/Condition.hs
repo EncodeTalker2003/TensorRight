@@ -43,7 +43,7 @@ instance PPrint Condition where
 -- For instance, @'zipCondition' (\l -> sum l .== 10) [a, b, c]@, checks if for
 -- every key @k@, @a[k] + b[k] + c[k] .== 10@. This also means that
 -- 'zipCondition' can only be used on maps having the same domain, i.e., the
--- same @Adim@.
+-- same @RClass@.
 zipCondition ::
   ([SymInteger] -> SymBool) ->
   [HM.HashMap T.Text SymInteger] ->
@@ -63,7 +63,7 @@ zipCondition f allMaps@(m : _) = allSameKeys .&& symAll (f . byKey) keys
 --
 -- For instance, @'elementWiseCondition' (.==) a b@, checks if for every key
 -- @k@, @a[k] .== b[k]@. This also means that 'elementWiseCondition' can only be
--- used on maps having the same domain, i.e., the same @Adim@.
+-- used on maps having the same domain, i.e., the same @RClass@.
 --
 -- For @f@, users can use the already avaiable functions in Grisette like
 -- 'Grisette..==', 'Grisette../=', 'Grisette..>', 'Grisette..>=', 'Grisette..<',
@@ -129,7 +129,7 @@ pointWiseCondition f a b =
 --
 -- For instance, @'elementWiseArith' (+) a b@, return a map @r@ such that for
 -- every key @k@, @r[k] = a[k] + b[k]@. This also means that 'elementWiseArith'
--- can only be used on maps having the same domain, i.e., the same @Adim@.
+-- can only be used on maps having the same domain, i.e., the same @RClass@.
 -- 
 -- For @f@, users can use any binary operator, as long as it satisifies the
 -- signature. This is useful if you have a condition involving more than two

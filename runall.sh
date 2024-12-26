@@ -46,7 +46,7 @@ run_and_capture() {
 
 ALL_RULES=$(ls rules)
 for rule in $ALL_RULES; do
-  if [[ $rule != "debug" && $rule != "maxMinToClampBefore" && $rule != "maxMinToClampAfter" && $rule != "generalize" ]]; then
+  if [[ $rule != "debug" && $rule != "generalize" ]]; then
     run_and_capture $rule
   fi
 done

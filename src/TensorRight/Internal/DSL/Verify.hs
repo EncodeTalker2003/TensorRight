@@ -52,18 +52,18 @@ import TensorRight.Internal.DSL.DSL
   ( DSLContext,
     Env
       ( Env,
-        declaredAdims,
+        declaredRClasses,
         exprAbstractShapes,
         lhsSIMaps,
         numTensorAssumptions,
         preConditions,
         rhsSIMaps,
-        singletonAdims,
+        singletonRClasses,
         tensorShapes
       ),
     ValidElem,
     ValidNum,
-    mapAdims,
+    mapRClasses,
     runDSLContext,
     siRelations,
     tensorDTypes,
@@ -71,7 +71,7 @@ import TensorRight.Internal.DSL.DSL
 import TensorRight.Internal.DSL.Eval
   ( EvalState
       ( EvalState,
-        adims,
+        rclasses,
         allTensorDTypes,
         allTensorShapes,
         evaluated,
@@ -93,7 +93,7 @@ import TensorRight.Internal.DSL.Expr
     lhs,
     name,
   )
-import TensorRight.Internal.DSL.Identifier (AdimIdentifier)
+import TensorRight.Internal.DSL.Identifier (RClassIdentifier)
 import TensorRight.Internal.DSL.Shape
   ( AbstractShape,
   )
@@ -102,34 +102,34 @@ verifyDSLWithNDim ::
   GrisetteSMTConfig ->
   Rewrite ->
   Env ->
-  HM.HashMap AdimIdentifier Int ->
-  IO (VerifyTask, HS.HashSet AdimIdentifier, HS.HashSet AdimIdentifier, AbstractShape)
+  HM.HashMap RClassIdentifier Int ->
+  IO (VerifyTask, HS.HashSet RClassIdentifier, HS.HashSet RClassIdentifier, AbstractShape)
 verifyDSLWithNDim solverConfig rewrite Env {..} ndim = do
   putStrLn $ "Verifying with ndim: " <> show ndim
-  let adims =
+  let rclasses =
         HM.fromList $
-          ( \adimIdent ->
-              ( adimIdent,
+          ( \rclassIdent ->
+              ( rclassIdent,
                 OS.fromList
-                  [0 .. ndim HM.! adimIdent - 1]
+                  [0 .. ndim HM.! rclassIdent - 1]
               )
           )
-            <$> HS.toList declaredAdims
+            <$> HS.toList declaredRClasses
   let maps =
         HM.fromList $
-          ( \(mapIdent, adimIdent) ->
-              let adimAxes = adims HM.! adimIdent
-                  identForAxis i = withInfo "map" $ SymMap adimIdent i mapIdent
+          ( \(mapIdent, rclassIdent) ->
+              let rclassAxes = rclasses HM.! rclassIdent
+                  identForAxis i = withInfo "map" $ SymMap rclassIdent i mapIdent
                in ( mapIdent,
                     HM.fromList
-                      [ ( getAxisName adimIdent axis,
+                      [ ( getAxisName rclassIdent axis,
                           ssym $ identForAxis axis
                         )
-                        | axis <- toList adimAxes
+                        | axis <- toList rclassAxes
                       ]
                   )
           )
-            <$> HM.toList mapAdims
+            <$> HM.toList mapRClasses
   let evalInitialState =
         EvalState
           { allTensorShapes = tensorShapes,
@@ -148,7 +148,7 @@ verifyDSLWithNDim solverConfig rewrite Env {..} ndim = do
                   (reverse monitoringExprs)
               monitoringSizes <-
                 traverse
-                  ( \(name, adimref, map) -> (name,) <$> getAxisMapLike adimref map
+                  ( \(name, rclassref, map) -> (name,) <$> getAxisMapLike rclassref map
                   )
                   (reverse monitoringMaps)
               assumptions <-
@@ -227,14 +227,14 @@ verifyDSLWithNDim solverConfig rewrite Env {..} ndim = do
         otherSISymbols
         monitoringTensors
         monitoringSizes,
-      declaredAdims `HS.difference` singletonAdims,
-      singletonAdims,
+      declaredRClasses `HS.difference` singletonRClasses,
+      singletonRClasses,
       exprAbstractShapes HM.! exprId (lhs rewrite)
     )
 
-baseAdimBound0 :: Rewrite -> Env -> HM.HashMap AdimIdentifier Int
-baseAdimBound0 _ Env {..} =
-  HM.fromList ((,1) <$> HS.toList declaredAdims)
+baseRClassBound0 :: Rewrite -> Env -> HM.HashMap RClassIdentifier Int
+baseRClassBound0 _ Env {..} =
+  HM.fromList ((,1) <$> HS.toList declaredRClasses)
 
 getRewriteName :: DSLContext Rewrite -> Either T.Text T.Text
 getRewriteName rewrite = case runDSLContext rewrite of
@@ -302,15 +302,15 @@ verifyDSLWithImpl solverConfig theoryInfo rewrite = do
     Left err -> fail $ T.unpack err
     Right (rewrite, env) -> do
       putStrLn $ "Verifying rule " <> T.unpack (name rewrite)
-      let bound0 = baseAdimBound0 rewrite env
-      (task, nonSingletonAdims, singletonAdims, shape) <-
+      let bound0 = baseRClassBound0 rewrite env
+      (task, nonSingletonRClasses, singletonRClasses, shape) <-
         verifyDSLWithNDim solverConfig rewrite env bound0
       inferredBound <-
         inferBound
           solverConfig
           task
-          nonSingletonAdims
-          singletonAdims
+          nonSingletonRClasses
+          singletonRClasses
           shape
       putStrLn $ "Inferred bounds: " <> show inferredBound
       putStrLn $
@@ -329,12 +329,12 @@ verifyDSLWithImpl solverConfig theoryInfo rewrite = do
         (verifyDSLWithNDim solverConfig rewrite env >=> verifyRule . fst4)
         ndims
   where
-    allNdims :: [(AdimIdentifier, Int)] -> [HM.HashMap AdimIdentifier Int]
+    allNdims :: [(RClassIdentifier, Int)] -> [HM.HashMap RClassIdentifier Int]
     allNdims inferredBoundList =
       HM.fromList
         <$> traverse
-          ( \(adimIdent, bound) ->
-              [(adimIdent, i) | i <- [1 .. bound]]
+          ( \(rclassIdent, bound) ->
+              [(rclassIdent, i) | i <- [1 .. bound]]
           )
           inferredBoundList
 

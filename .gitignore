@@ -1,2 +1,4 @@
 result.txt
 *.pdf
+.stack-work/
+stack.yaml.lock

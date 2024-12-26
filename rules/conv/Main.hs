@@ -8,7 +8,7 @@ import TensorRight
 rule00 :: forall a. NumRule a
 rule00 _ = do
   [batch, feature, output, spatial] <-
-    newAdims ["batch", "feature", "output", "spatial"]
+    newRClasses ["batch", "feature", "output", "spatial"]
 
   batchShape <- newMap "batchShape" batch
   featureShape <- newMap "featureShape" feature
@@ -63,9 +63,9 @@ rule00 _ = do
       lhsInputsPadded
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [feature --> siMapLhsFeature, spatial --> siMapLhsSpatial]
@@ -80,26 +80,26 @@ rule00 _ = do
   monitorExprOnFailure "weights" weights
   monitorExprOnFailure "lhsInputPadded" lhsInputsPadded
   monitorExprOnFailure "lhs" lhs
-  monitorMapOnFailure "plow" (ByAdim spatial) plow
-  monitorMapOnFailure "pint" (ByAdim spatial) pint
-  monitorMapOnFailure "phigh" (ByAdim spatial) phigh
-  monitorMapOnFailure "low" (ByAdim spatial) low
-  monitorMapOnFailure "ldilation" (ByAdim spatial) ldilation
-  monitorMapOnFailure "high" (ByAdim spatial) high
+  monitorMapOnFailure "plow" (ByRClass spatial) plow
+  monitorMapOnFailure "pint" (ByRClass spatial) pint
+  monitorMapOnFailure "phigh" (ByRClass spatial) phigh
+  monitorMapOnFailure "low" (ByRClass spatial) low
+  monitorMapOnFailure "ldilation" (ByRClass spatial) ldilation
+  monitorMapOnFailure "high" (ByRClass spatial) high
 
-  monitorMapOnFailure "newlow" (ByAdim spatial) newlow
-  monitorMapOnFailure "newint" (ByAdim spatial) newint
-  monitorMapOnFailure "newhigh" (ByAdim spatial) newhigh
-  monitorMapOnFailure "rdilation" (ByAdim spatial) rdilation
+  monitorMapOnFailure "newlow" (ByRClass spatial) newlow
+  monitorMapOnFailure "newint" (ByRClass spatial) newint
+  monitorMapOnFailure "newhigh" (ByRClass spatial) newhigh
+  monitorMapOnFailure "rdilation" (ByRClass spatial) rdilation
 
   rhs <-
     conv
       inputs
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [feature --> siMapRhsFeature, spatial --> siMapRhsSpatial]
@@ -136,7 +136,7 @@ rule00 _ = do
 rule01 :: forall a. NumRule a
 rule01 _ = do
   [batch, feature, output, spatial] <-
-    newAdims ["batch", "feature", "output", "spatial"]
+    newRClasses ["batch", "feature", "output", "spatial"]
 
   batchShape <- newMap "batchShape" batch
   featureShape <- newMap "featureShape" feature
@@ -183,9 +183,9 @@ rule01 _ = do
       inputs
       lhsWeightPadded
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [feature --> siMapLhsFeature, spatial --> siMapLhsSpatial]
@@ -202,9 +202,9 @@ rule01 _ = do
       inputs
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [feature --> siMapRhsFeature, spatial --> siMapRhsSpatial]
@@ -241,7 +241,7 @@ rule01 _ = do
 rule02 :: forall a. NumRule a
 rule02 _ = do
   [batch, feature, output, spatial] <-
-    newAdims ["batch", "feature", "output", "spatial"]
+    newRClasses ["batch", "feature", "output", "spatial"]
 
   batchShape <- newMap "batchShape" batch
   featureShape <- newMap "featureShape" feature
@@ -302,9 +302,9 @@ rule02 _ = do
       inputs
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [ feature --> siMapLhsFeature,
@@ -319,12 +319,12 @@ rule02 _ = do
         }
   rhs <-
     conv
-      (reverseTensor weights [ByAdim spatial])
-      (reverseTensor inputs [ByAdim spatial])
+      (reverseTensor weights [ByRClass spatial])
+      (reverseTensor inputs [ByRClass spatial])
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim output],
-          outputFeatureAdims = [ByAdim feature],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass output],
+          outputFeatureRClasses = [ByRClass feature],
           strides = [spatial --> newstrides],
           contractingSIMaps =
             [ feature --> siMapRhsFeature,
@@ -354,7 +354,7 @@ rule02 _ = do
 rule03 :: forall a. NumRule a
 rule03 _ = do
   [batch, feature, output, spatialTrivial, spatialOne] <-
-    newAdims ["batch", "feature", "output", "spatialTrivial", "spatialOne"]
+    newRClasses ["batch", "feature", "output", "spatialTrivial", "spatialOne"]
 
   batchShape <- newMap "batchShape" batch
   featureShape <- newMap "featureShape" feature
@@ -403,9 +403,9 @@ rule03 _ = do
       inputs
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides =
             [ spatialTrivial --> stridesTrivial,
               spatialOne --> stridesOne
@@ -423,7 +423,7 @@ rule03 _ = do
           rdilation = [spatialTrivial --> rdilationTrivial, spatialOne --> rdilationOne]
         }
 
-  weightExcludeSpatialOne <- reshapeDegenerate weights [] [ByAdim spatialOne]
+  weightExcludeSpatialOne <- reshapeDegenerate weights [] [ByRClass spatialOne]
   weightBroadcastSpatialOne <-
     broadcast weightExcludeSpatialOne [spatialOne --> inputSpatialOneShape]
   rhs <-
@@ -434,9 +434,9 @@ rule03 _ = do
           [ spatialTrivial --> siMapRhsSpatialTrivial,
             feature --> siMapRhsFeature
           ]
-          [ByAdim spatialOne]
+          [ByRClass spatialOne]
       )
-      [(ByAdim spatialTrivial, spatialTrivial)]
+      [(ByRClass spatialTrivial, spatialTrivial)]
       []
   siRelation [siMapLhsFeature, siMapRhsFeature] $
     \[vsiMapLhsFeature, vsiMapRhsFeature] ->
@@ -450,9 +450,9 @@ rule03 _ = do
     [siMapLhsFeature, siMapLhsSpatialTrivial, siMapLhsSpatialOne]
     [siMapRhsFeature, siMapRhsSpatialTrivial]
   monitorExprOnFailure "rhs" rhs
-  monitorMapOnFailure "lso" (ByAdim spatialOne) siMapLhsSpatialOne
-  monitorMapOnFailure "lst" (ByAdim spatialTrivial) siMapLhsSpatialTrivial
-  monitorMapOnFailure "rst" (ByAdim spatialTrivial) siMapRhsSpatialTrivial
+  monitorMapOnFailure "lso" (ByRClass spatialOne) siMapLhsSpatialOne
+  monitorMapOnFailure "lst" (ByRClass spatialTrivial) siMapLhsSpatialTrivial
+  monitorMapOnFailure "rst" (ByRClass spatialTrivial) siMapRhsSpatialTrivial
 
   rewrite "Conv(A,B) => Dot(A, B)" lhs rhs
 

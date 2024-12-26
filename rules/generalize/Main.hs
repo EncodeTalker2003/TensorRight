@@ -8,7 +8,7 @@ import TensorRight
 foldConvInputPadGeneral :: forall a. NumRule a
 foldConvInputPadGeneral _ = do
   [batch, feature, output, spatial] <-
-    newAdims ["batch", "feature", "output", "spatial"]
+    newRClasses ["batch", "feature", "output", "spatial"]
 
   batchShape <- newMap "batchShape" batch
   featureShape <- newMap "featureShape" feature
@@ -65,9 +65,9 @@ foldConvInputPadGeneral _ = do
       lhsInputsPadded
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [feature --> siMapLhsFeature, spatial --> siMapLhsSpatial]
@@ -82,26 +82,26 @@ foldConvInputPadGeneral _ = do
   monitorExprOnFailure "weights" weights
   monitorExprOnFailure "lhsInputPadded" lhsInputsPadded
   monitorExprOnFailure "lhs" lhs
-  monitorMapOnFailure "plow" (ByAdim spatial) plow
-  monitorMapOnFailure "pint" (ByAdim spatial) pint
-  monitorMapOnFailure "phigh" (ByAdim spatial) phigh
-  monitorMapOnFailure "low" (ByAdim spatial) low
-  monitorMapOnFailure "ldilation" (ByAdim spatial) ldilation
-  monitorMapOnFailure "high" (ByAdim spatial) high
+  monitorMapOnFailure "plow" (ByRClass spatial) plow
+  monitorMapOnFailure "pint" (ByRClass spatial) pint
+  monitorMapOnFailure "phigh" (ByRClass spatial) phigh
+  monitorMapOnFailure "low" (ByRClass spatial) low
+  monitorMapOnFailure "ldilation" (ByRClass spatial) ldilation
+  monitorMapOnFailure "high" (ByRClass spatial) high
 
-  monitorMapOnFailure "newlow" (ByAdim spatial) newlow
-  monitorMapOnFailure "newint" (ByAdim spatial) newldilation
-  monitorMapOnFailure "newhigh" (ByAdim spatial) newhigh
-  monitorMapOnFailure "rdilation" (ByAdim spatial) rdilation
+  monitorMapOnFailure "newlow" (ByRClass spatial) newlow
+  monitorMapOnFailure "newint" (ByRClass spatial) newldilation
+  monitorMapOnFailure "newhigh" (ByRClass spatial) newhigh
+  monitorMapOnFailure "rdilation" (ByRClass spatial) rdilation
 
   rhs <-
     conv
       inputs
       weights
       ConvConfig
-        { batchAdims = [ByAdim batch],
-          featureAdims = [ByAdim feature],
-          outputFeatureAdims = [ByAdim output],
+        { batchRClasses = [ByRClass batch],
+          featureRClasses = [ByRClass feature],
+          outputFeatureRClasses = [ByRClass output],
           strides = [spatial --> strides],
           contractingSIMaps =
             [feature --> siMapRhsFeature, spatial --> siMapRhsSpatial]
