@@ -212,7 +212,7 @@ module TensorRight
     -- rclass <- 'newRClass' "rclass"
     -- map <- 'newMap' "map" rclass
     -- tensor <- 'newTensor' "tensor" 'IntType' [rclass '-->' map]
-    -- expr <- 'intBinOp' 'Add' tensor tensor
+    -- expr <- 'numBinOp' 'Add' tensor tensor
     -- @
 
     -- | For the detailed list of operations supported, refer to the
@@ -254,7 +254,7 @@ module TensorRight
     --   don't have concrete keys and values. But later, we infer how many
     --   individual axes are sufficient for every map, instantiate them with a
     --   fixed number of concrete-keys, and symbolic values (in this case,
-    --   'SymInteger'). The function f works directly with these instantiated
+    --   'Grisette.SymInteger'). The function f works directly with these instantiated
     --   maps
     --
     -- For example, we can write a precondition expressing that a maps needs to
@@ -265,16 +265,16 @@ module TensorRight
     -- [size, padSize] <- 'newMap' ["size", "padSize"] rclass
     -- tensor <- 'newTensor' "t" 'IntType' [rclass '-->' size]
     -- lhs <- 'pad' tensor ('intElem' 0) $
-    --   'Padding'
+    --   v'Padding'
     --     { low = [rclass '-->' padSize],
     --       interior = [rclass '-->' padSize],
     --       high = [rclass '-->' padSize]
     --     }
-    -- 'precondition' [padSize] $ \[padSize] -> 'pointWiseCondition' (.==) padSize 0
+    -- 'precondition' [padSize] $ \[padSize] -> 'unaryCond' (.== 0) padSize
     -- @
 
-    -- | The precondition first takes a list, containing only the 'Map'
-    -- identifier 'padSize'. It then takes a function, whose only argument is a
+    -- | The precondition first takes a list, containing only the 'TensorRight.Internal.DSL.Condition.MapIdentifier'
+    -- @padSize@. It then takes a function, whose only argument is a
     -- singleton list containing the padding sizes, and it checks it all values
     -- in the map are 0 or not. It returns a symbolic boolean corresponding to
     -- the same.
@@ -305,19 +305,20 @@ module TensorRight
 
     -- | Once we have declared all @RClass@ identifiers, @Map@ identifiers,
     -- @Tensor@ identifiers, created expressions and added preconditions, we can
-    -- use the 'Rewrite' constructor to create a rewrite rule:
+    -- use the v'Rewrite' constructor to create a rewrite rule:
 
     -- | @
     -- lhs <- ...
     -- rhs <- ...
-    -- 'Rewrite' "lhs => rhs" lhs rhs
+    -- return $
+    --   v'Rewrite' "lhs => rhs" lhs rhs
     -- @
 
     -- | Here is a full example, that creates a rewrite rule, and wraps it in
     -- the appropriate context.
 
     -- | @
-    -- rule :: 'DSLContext' 'Rewrite'
+    -- rule :: 'DSLContext' t'Rewrite'
     -- rule = do
     --   rclass <- 'newRClass' "rclass"
     --   map <- 'newMap' "map" rclass
@@ -326,11 +327,11 @@ module TensorRight
     --
     --   constTensor1 <- 'constantInt' "a" [rclass '-->' map]
     --   constTensor2 <- 'constantInt' "b" [rclass '-->' map]
-    --   lhs <- 'intBinOp' 'Add' ('intBinOp' 'Add' tensor constTensor1) constTensor2
-    --   rhs <- 'intBinOp' 'Add' tensor ('intBinOp' 'Add' constTensor1 constTensor2)
+    --   lhs <- 'numBinOp' 'Add' ('numBinOp' 'Add' tensor constTensor1) constTensor2
+    --   rhs <- 'numBinOp' 'Add' tensor ('numBinOp' 'Add' constTensor1 constTensor2)
     --
     --   return $
-    --     'Rewrite' "Add(Add(A, Const), Const2) ⇒ Add(A, Add(Const, Const2))" lhs rhs
+    --     v'Rewrite' "Add(Add(A, Const), Const2) ⇒ Add(A, Add(Const, Const2))" lhs rhs
     -- @
 
     -- | Once this rule is declared, we can verify it using 'verifyDSL'.
@@ -394,11 +395,9 @@ module TensorRight
     precondition',
     numTensorAssumption,
     zipCondition,
-    elementWiseCondition,
-    pointWiseCondition,
-    unaryCondition,
-    elementWiseArith,
-    pointWiseArith,
+    elemWiseCond,
+    unaryCond,
+    elemWiseArith,
     unaryArith,
 
     -- * Elements

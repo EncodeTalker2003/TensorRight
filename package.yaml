@@ -1,8 +1,11 @@
 name: tensor-right
 version: 0.1.0.0
-synopsis: Tensor rewriting rule verifier
+synopsis: Automated Verification of Tensor Graph Rewrites
 description: |
-  Tensor rewriting rule verifier
+  TensorRight is an automatic tool that can be used to verify
+  Tensor Graph Rewrites.
+license: Apache-2.0
+license-file: LICENSE
 
 dependencies:
   - base >= 4.14 && < 5

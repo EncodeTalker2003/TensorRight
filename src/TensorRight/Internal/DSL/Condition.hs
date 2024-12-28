@@ -4,11 +4,9 @@
 module TensorRight.Internal.DSL.Condition
   ( Condition (..),
     zipCondition,
-    elementWiseCondition,
-    pointWiseCondition,
-    elementWiseArith,
-    unaryCondition,
-    pointWiseArith,
+    elemWiseCond,
+    elemWiseArith,
+    unaryCond,
     unaryArith,
   )
 where
@@ -61,8 +59,8 @@ zipCondition f allMaps@(m : _) = allSameKeys .&& symAll (f . byKey) keys
 
 -- | The condition will be applied to two maps in an element-wise way.
 --
--- For instance, @'elementWiseCondition' (.==) a b@, checks if for every key
--- @k@, @a[k] .== b[k]@. This also means that 'elementWiseCondition' can only be
+-- For instance, @'elemWiseCond' (.==) a b@, checks if for every key
+-- @k@, @a[k] .== b[k]@. This also means that 'elemWiseCond' can only be
 -- used on maps having the same domain, i.e., the same @RClass@.
 --
 -- For @f@, users can use the already avaiable functions in Grisette like
@@ -73,9 +71,9 @@ zipCondition f allMaps@(m : _) = allSameKeys .&& symAll (f . byKey) keys
 --
 -- @
 -- let compareFunc x y = x <= y .|| x .== 1
--- 'TensorRight.precondition' [m1, m2] $ \[m1, m2] -> 'elementWiseCondition' compareFunc m1 m2
+-- 'TensorRight.precondition'' [m1, m2] $ \[m1, m2] -> 'elemWiseCond' (.<=) m1 m2 .|| 'unaryCond' (.== 1) m1
 -- @
-elementWiseCondition ::
+elemWiseCond ::
   -- | Element-wise function
   (SymInteger -> SymInteger -> SymBool) ->
   -- | Left-hand side
@@ -84,51 +82,30 @@ elementWiseCondition ::
   HM.HashMap T.Text SymInteger ->
   -- | Resulting condition
   SymBool
-elementWiseCondition f a b =
+elemWiseCond f a b =
   con (HM.keysSet a == HM.keysSet b)
     .&& foldr (.&&) (con True) (HM.intersectionWith f a b)
 
 -- | The condition will be applied to each element of the map.
 --
--- For instance, @'unaryCondition' (.== 0) a@, checks if for every key @k@,
+-- For instance, @'unaryCond' (.== 0) a@, checks if for every key @k@,
 -- @a[k] .== 0@.
 --
--- The user can use any function @f@, as long as it satisfies the signature. The
--- same condition could have been writen using 'pointWiseCondition'
+-- The user can use any function @f@, as long as it satisfies the signature.
 --
 -- @
--- 'TensorRight.precondition' [m] $ \[m] -> 'unaryCondition' (.> 1) m
--- 'TensorRight.precondition' [m] $ \[m] -> 'pointWiseCondition' (.>) m 1 -- equivalent
+-- 'TensorRight.precondition'' [m] $ \[m] -> 'unaryCond' (.> 1) m
 -- @
-unaryCondition ::
+unaryCond ::
   (SymInteger -> SymBool) ->
   HM.HashMap T.Text SymInteger ->
   SymBool
-unaryCondition f a = foldr (.&&) (con True) (HM.map f a)
-
--- | The condition will be applied to two maps in a point-wise way.
--- 
--- For instance, @'pointWiseCondition' (.==) a 1@, checks if for every key @k@,
--- @a[k] .== 1@.
---
--- The user can use any function @f@, as long as it satisfies the signature.
--- For instance, here is how we can check if @m > 1@:
---
--- @
--- 'TensorRight.precondition' [m] $ \[m] -> pointWiseCondition (.>) m 1
--- @
-pointWiseCondition ::
-  (SymInteger -> SymInteger -> SymBool) ->
-  HM.HashMap T.Text SymInteger ->
-  SymInteger ->
-  SymBool
-pointWiseCondition f a b =
-  foldr (.&&) (con True) (HM.map (`f` b) a)
+unaryCond f a = foldr (.&&) (con True) (HM.map f a)
 
 -- | Helper for operate on two maps in an element-wise way.
 --
--- For instance, @'elementWiseArith' (+) a b@, return a map @r@ such that for
--- every key @k@, @r[k] = a[k] + b[k]@. This also means that 'elementWiseArith'
+-- For instance, @'elemWiseArith' (+) a b@, returns a map @r@ such that for
+-- every key @k@, @r[k] = a[k] + b[k]@. This also means that 'elemWiseArith'
 -- can only be used on maps having the same domain, i.e., the same @RClass@.
 -- 
 -- For @f@, users can use any binary operator, as long as it satisifies the
@@ -136,49 +113,27 @@ pointWiseCondition f a b =
 -- maps. For instance, this checks if @m1 == m2 + m3@
 --
 -- @
--- 'TensorRight.precondition' [m1, m2, m3] $
---   \[m1, m2, m3] -> 'elementWiseCondition' (.==) m1 ('elementWiseArith' (+) m2 m3) 
+-- 'TensorRight.precondition'' [m1, m2, m3] $
+--   \[m1, m2, m3] -> 'elemWiseCond' (.==) m1 ('elemWiseArith' (+) m2 m3) 
 -- @
-elementWiseArith ::
+elemWiseArith ::
   (SymInteger -> SymInteger -> SymInteger) ->
   HM.HashMap T.Text SymInteger ->
   HM.HashMap T.Text SymInteger ->
   HM.HashMap T.Text SymInteger
-elementWiseArith = HM.intersectionWith
+elemWiseArith = HM.intersectionWith
 
--- | Helper for operate on two maps in a pointwise way. For instance,
--- @'pointWiseArith' (+) a v@, return a map @r@ such that for every key @k@,
--- @r[k] = a[k] + v@.
+-- | Helper for operating on a map in a unary way.
 --
+-- For instance, @'unaryArith' (+2) a@, return a map @r@ such that for
+-- every key @k@, @r[k] = a[k] + 2@.
+-- 
 -- For @f@, users can use any binary operator, as long as it satisifies the
 -- signature. For instance, this checks if @m1 == m2 + 2@
 --
 -- @
--- 'TensorRight.precondition' [m1, m2] $
---   \[m1, m2] -> 'elementWiseCondition' (.==) m1 ('pointWiseArith' (+) m2 2)
--- @
-pointWiseArith ::
-  (SymInteger -> SymInteger -> SymInteger) ->
-  HM.HashMap T.Text SymInteger ->
-  SymInteger ->
-  HM.HashMap T.Text SymInteger
-pointWiseArith f a b = HM.map (`f` b) a
-
--- | Helper for operate on a map in a unary way.
---
--- For instance, @'unaryWiseArith' (+2) a v@, return a map @r@ such that for
--- every key @k@, @r[k] = a[k] + 2@.
--- 
--- For @f@, users can use any binary operator, as long as it satisifies the
--- signature. For instance, this checks if @m1 == -m2@ (there are multiple ways
--- to express it)
---
--- @
--- 'TensorRight.precondition' [m1, m2] $
---   \[m1, m2] -> 'elementWiseCondition' (.==) m1 ('unaryArithOp' negate m2)
--- 
--- 'TensorRight.precondition' [m1, m2] $
---   \[m1, m2] -> 'elementWiseCondition' (\x y -> x .== negate y) m1 m2 -- equivalent
+-- 'TensorRight.precondition'' [m1, m2] $
+--   \[m1, m2] -> 'elemWiseCond' (.==) m1 ('unaryArith' (+2) m2)
 -- @
 unaryArith ::
   (SymInteger -> SymInteger) ->

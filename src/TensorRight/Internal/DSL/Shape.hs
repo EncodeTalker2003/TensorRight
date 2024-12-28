@@ -39,7 +39,13 @@ import TensorRight.Internal.DSL.Syntax (ArrowSyntax ((-->)), AtSyntax ((@@)))
 import TensorRight.Internal.Util.Error (Error, assert)
 import TensorRight.Internal.Util.Pretty (encloseList, prettyWithConstructor)
 
--- | Reference to an rclass. An rclass may be labelled or not labelled.
+-- | Reference to an RClass. An RClass may be labelled or not labelled.
+-- If an RClass is unlabelled, then it means that the RClass has exactly
+-- one-aggregated-axis, and the RClass itself acts as a reference to the
+-- said aggregated-axis.
+-- If the RClass is labelled, then the label acts as a reference to the
+-- aggregated-axis. In this case, the RClass can have multiple labels,
+-- each referring to a different aggregated-axis on that RClass.
 data RClassRef
   = ByRClass RClassIdentifier
   | ByLabel Label
@@ -49,6 +55,12 @@ data RClassRef
 
 type RClassRefSet = HS.HashSet RClassRef
 
+-- | A Tensor Shape is a mapping from aggregated-axes to aggregated-maps, containing axes sizes.
+-- Each mapping in a tensor shape can be labelled or unlabelled.
+-- 
+-- - A labelled mapping contains the name for an aggregated-axis ('Label'),
+-- an 'RClassIdentifier', and a 'MapIdentifier'.
+-- - An unlabelled mapping contains only an 'RClassIdentifier' (which acts as the aggregated-axis name) and a 'MapIdentifier'.
 data TensorShape = TensorShape
   { labelled :: HM.HashMap Label (RClassIdentifier, MapIdentifier),
     unlabelled :: HM.HashMap RClassIdentifier MapIdentifier
@@ -85,6 +97,11 @@ instance PPrint TensorShape where
 data PartialTensorShapeDesc
   = PartialTensorShapeDesc RClassIdentifier MapIdentifier
 
+-- | A 'TensorShapeDesc' describes a mapping in a tensor shape.
+-- It has two constructors:
+-- 
+-- - 'UnlabelledDesc': @'RClassIdentifier' 'TensorRight.Internal.DSL.Syntax.-->' 'MapIdentifier'@ can be used to create an unlabelled mapping.
+-- - 'LabelledDesc': @'RClassIdentifier' 'TensorRight.Internal.DSL.Syntax.-->' 'MapIdentifier' 'TensorRight.Internal.DSL.Syntax.@@' 'Label'@ can be used to create a labelled mapping.
 data TensorShapeDesc
   = UnlabelledDesc RClassIdentifier MapIdentifier
   | LabelledDesc Label RClassIdentifier MapIdentifier
@@ -113,6 +130,12 @@ getTensorShape' (LabelledDesc label rclass map : rest) = do
     throwError "Labelled rclass already present as unlabelled"
   return $ TensorShape (HM.insert label (rclass, map) labelled) unlabelled
 
+-- | A function to convert a list of 'TensorShapeDesc' to a 'TensorShape'
+-- The function makes the following checks:
+--
+-- - No two unlabelled mappings can have the same 'RClassIdentifier'.
+-- - No two labelled mappings can have the same 'Label'.
+-- - A labelled mapping cannot have the same 'RClassIdentifier' as an unlabelled mapping.
 getTensorShape ::
   (MonadError Error m) => [TensorShapeDesc] -> m TensorShape
 getTensorShape descs =
@@ -135,6 +158,7 @@ instance TensorShapeLike TensorShape where
 instance TensorShapeLike [TensorShapeDesc] where
   toTensorShape = getTensorShape
 
+-- | Represents a 'TensorShape' without any 'MapIdentifier' information.
 data AbstractShape = AbstractShape
   { labelled :: HM.HashMap Label RClassIdentifier,
     unlabelled :: HS.HashSet RClassIdentifier
@@ -156,6 +180,7 @@ instance PPrint AbstractShape where
     where
       prettyLabelled label rclass = pformat rclass <> " @@ " <> pformat label
 
+-- | Converts a 'TensorShape' to an 'AbstractShape'
 toAbstractShape :: TensorShape -> AbstractShape
 toAbstractShape (TensorShape labelled unlabelled) =
   AbstractShape
@@ -163,10 +188,12 @@ toAbstractShape (TensorShape labelled unlabelled) =
       unlabelled = HM.keysSet unlabelled
     }
 
+-- | Returns all 'RClassRef's in an 'AbstractShape'
 abstractShapeAllRefs :: AbstractShape -> HS.HashSet RClassRef
 abstractShapeAllRefs (AbstractShape labelled unlabelled) =
   HS.map ByRClass unlabelled `HS.union` HS.map ByLabel (HM.keysSet labelled)
 
+-- | Removes an 'RClassRef' from an 'AbstractShape'
 removeRClass ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -179,6 +206,7 @@ removeRClass AbstractShape {..} (ByLabel label) = do
   assert "Label not exist" $ HM.member label labelled
   return $ AbstractShape (HM.delete label labelled) unlabelled
 
+-- | Returns the 'RClassIdentifier' corresponding to an 'RClassRef' given an 'AbstractShape'
 getRClassByRClassRef ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -192,6 +220,7 @@ getRClassByRClassRef AbstractShape {..} (ByLabel label) =
     Nothing -> throwError "Label not exist"
     Just rclass -> return rclass
 
+-- | Adds an 'RClassRef' to an 'AbstractShape'
 addRClassByRClassRef ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -206,6 +235,12 @@ addRClassByRClassRef AbstractShape {..} (ByLabel label) rclass = do
   assert "Label already exist" $ not $ HM.member label labelled
   return $ AbstractShape (HM.insert label rclass labelled) unlabelled
 
+-- | Concatenates two 'AbstractShape's.
+-- The function makes the following checks:
+--
+-- - The input 'AbstractShape's must not have any overlapping labelled RClass.
+-- - The input 'AbstractShape's must not have any overlapping unlabelled RClass.
+-- - The resulting 'AbstractShape' must not have any labelled RClass that overlaps with an unlabelled RClass.
 concatAbstractShape ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -228,6 +263,7 @@ concatAbstractShape
             (u1 `HS.union` u2)
     return newAbstractShape
 
+-- | Restricts an 'AbstractShape' to the specified set of 'RClassRef's.
 restrictAbstractShape ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->

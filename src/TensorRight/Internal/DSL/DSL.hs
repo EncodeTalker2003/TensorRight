@@ -542,10 +542,10 @@ boolUnaryOp op expr' = do
 -- | Reduce operation. The expression must have the dtype 'IntType'.
 --
 -- The description of the si-indices (i.e., the @'ParamDesc'@), can either be
--- @<rclass> '-->' <map>@ or @ByLabel <label> '-->' <map>@.
+-- @<rclass> 'TensorRight.Internal.DSL.Syntax.-->' <map>@ or @ByLabel <label> 'TensorRight.Internal.DSL.Syntax.-->' <map>@.
 --
 -- Each sum index specifies the rclass to be reduced and the map to be used for
--- the si-indices. This can be done by either providing an 'RClass' identifier, or
+-- the si-indices. This can be done by either providing an 'RClassIdentifier', or
 -- a label.
 --
 -- Note that the reference needs to be @'ByLabel' <label>@ for labelled @RClasses@,
@@ -659,7 +659,7 @@ class SliceFun a where
     (ExprInContext e) =>
     -- | The tensor to slice.
     e ->
-    -- | The next argument. Could be a 'Slice', and return a
+    -- | The next argument. Could be a t'Slice', and return a
     -- @'DSLContext' 'Expr'@, or it could be three @['ParamDesc']@, without the
     -- names. We recommend using named arguments all the time.
     a ->
@@ -752,7 +752,7 @@ class PaddingFun a where
     e ->
     -- | The element to pad. Usually created with 'intElem' or 'boolElem'.
     v ->
-    -- | The next argument. Could be a 'Padding', and return a
+    -- | The next argument. Could be a t'Padding', and return a
     -- @'DSLContext' 'Expr'@, or it could be three @['ParamDesc']@, without the
     -- names. We recommend using named arguments all the time.
     a ->
@@ -833,7 +833,7 @@ class ConvBaseFun a where
     input ->
     -- | The weights (kernel) tensor.
     weights ->
-    -- | The next argument. Could be a 'ConvConfig', and return a
+    -- | The next argument. Could be a t'ConvConfig', and return a
     -- @'DSLContext' 'Expr'@, or it could be
     -- @['RClassRef'] -> ['RClassRef'] -> ['RClassRef'] -> ['ParamDesc'] -> ['ParamDesc'] -> 'DSLContext' 'Expr'@,
     -- without the names. We recommend using named arguments all the time.

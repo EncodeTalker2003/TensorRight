@@ -44,14 +44,19 @@ instance PPrint (Identifier kind) where
   pformat (SimpleIdentifier name) = pformat name
   pformat (IndexedIdentifier name i) = pformat name <> "@" <> pformat i
 
+-- | An identifier for an RClass.
 type RClassIdentifier = Identifier 'RClassKind
 
+-- | An identifier for an aggregated-map.
 type MapIdentifier = Identifier 'MapKind
 
+-- | An identifier for a tensor.
 type TensorIdentifier = Identifier 'TensorKind
 
 nextIdentifier :: Identifier kind -> Identifier kind
 nextIdentifier (SimpleIdentifier name) = IndexedIdentifier name 0
 nextIdentifier (IndexedIdentifier name i) = IndexedIdentifier name (i + 1)
 
+-- | A 'Label' represents a name for an aggregated-axis.
+-- It is not needed if an RClass has only one aggregated-axis.
 type Label = T.Text

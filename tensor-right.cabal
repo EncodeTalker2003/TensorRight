@@ -6,8 +6,9 @@ cabal-version: 1.12
 
 name:           tensor-right
 version:        0.1.0.0
-synopsis:       Tensor rewriting rule verifier
-description:    Tensor rewriting rule verifier
+synopsis:       Automated Verification of Tensor Graph Rewrites
+description:    TensorRight is an automatic tool that can be used to verify
+                Tensor Graph Rewrites.
 license:        Apache-2.0
 license-file:   LICENSE
 build-type:     Simple

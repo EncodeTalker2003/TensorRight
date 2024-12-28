@@ -652,7 +652,7 @@ emptyEnv =
     HS.empty
 
 -- | The context for the DSL. Your rewriting rule usually should have the type
--- @'DSLContext' 'Rewrite'@.
+-- @t'DSLContext' t'Rewrite'@.
 newtype DSLContext a = DSLContext {unDSLContext :: StateT Env (Either T.Text) a}
   deriving newtype
     ( Functor,

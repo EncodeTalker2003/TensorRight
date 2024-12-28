@@ -80,9 +80,9 @@ import TensorRight.Internal.Util.Error (ErrorEnv)
 
 -- | The data type of a tensor.
 --
--- We currently support two data types: integers and booleans.
+-- We currently support three data types: integers, reals, and booleans.
 --
--- The integer or real type is using a special representation ('TensorVal') that
+-- The integer or real type is using a special representation ('TensorNum') that
 -- allows representing +inf and -inf.
 data DType = IntType | RealType | BoolType
   deriving (Generic, Eq, Show)
