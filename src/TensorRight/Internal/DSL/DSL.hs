@@ -302,7 +302,13 @@ sumMap name = combineMap name sum
 -- | Create a new map where its contents are the combination of the contents of
 -- the provided maps. The maps must have the same rclass.
 --
--- The combination is done with a function.
+-- The combination is done with a function, which operates on groups of elements
+-- with the same axes.
+-- For example, the following code can be used to calculate the sum of squares of three maps @a@, @b@, and @c@:
+
+-- | @
+-- 'combineMap' "sum_of_squares" (\[a, b, c] -> a*a + b*b + c*c) [a, b, c]
+-- @
 combineMap ::
   T.Text ->
   ([SymInteger] -> SymInteger) ->
@@ -331,6 +337,13 @@ numTensorAssumption tensors map f = do
       }
 
 -- | Add a precondition to rewriting rule.
+-- It takes:
+--
+-- - A list of @Map@ identifiers that the precondition will be applied to.
+-- - A function that takes a list of concrete maps from axes to
+-- symbolic integers, and returns a symbolic boolean. This function is applied
+-- to the concrete instantiations of the aggregated-maps referenced by the
+-- @Map@ identifiers.
 precondition' ::
   [MapIdentifier] ->
   ([HM.HashMap T.Text SymInteger] -> SymBool) ->
@@ -340,6 +353,38 @@ precondition' maps condition = do
   put $ env {preConditions = Condition maps condition : preConditions env}
 
 -- | Add a precondition to rewriting rule.
+-- It takes:
+--
+-- - A list of @Map@ identifiers that the precondition will be applied to.
+-- - A function that takes a list of symbolic integers, and returns a symbolic
+-- boolean. The condition will be applied to each group of the elements with
+-- the same axes and combined with a logical AND to get the final symbolic
+-- boolean.
+--
+-- 'precondition' allows to specify a strictly smaller classes of conditions
+-- than 'precondition''. One such case arises when the precondition to specify
+-- has disjunctions.
+-- For example, consider two maps @a@ and @b@, and we want to check if either
+-- @a@ or @b@ is greater than 0, i.e., @a > 0 || b > 0@. This means that either
+-- all values in @a@ are greater than 0, or all values in @b@ are greater than 0.
+-- This can be achieved by using 'precondition'' with
+
+-- | @
+-- precondition' [a, b] $ \[a, b] ->
+--     ('TensorRight.unaryCond' (.> 0) a) .|| ('TensorRight.unaryCond' (.> 0) b)
+-- @
+-- However, if we use 'precondition' with
+
+-- | @
+-- precondition [a, b] $ \[a, b] -> a .> 0 .|| b .> 0
+-- @
+-- then the condition will be applied to each axis of @a@ and @b@ separately,
+-- i.e., it checks if for every axis @k@, either @a[k] > 0@ or @b[k] > 0@.
+-- This precondition can be satisfied even if either all values in @a@ are
+-- greater than 0, or all values in @b@ are greater than 0.
+-- In fact, this precondition is strictly weaker than the previous one.
+--
+-- However, 'precondition' is more convenient to use in many cases.
 precondition ::
   [MapIdentifier] ->
   ([SymInteger] -> SymBool) ->
@@ -347,6 +392,7 @@ precondition ::
 precondition maps = precondition' maps . zipCondition
 
 -- | Add an SI relation to rewriting rule.
+-- It is similar to 'precondition', but it is used to specify the SI relations.
 siRelation' ::
   [MapIdentifier] ->
   ([HM.HashMap T.Text SymInteger] -> SymBool) ->
@@ -356,6 +402,7 @@ siRelation' maps condition = do
   put $ env {siRelations = Condition maps condition : siRelations env}
 
 -- | Add an SI relation to rewriting rule.
+-- It is similar to 'precondition', but it is used to specify the SI relations.
 siRelation ::
   [MapIdentifier] ->
   ([SymInteger] -> SymBool) ->
@@ -398,11 +445,11 @@ instance ExprInContext Expr where
 instance ExprInContext (DSLContext Expr) where
   liftInContext = id
 
--- | Number binary operation. The lhs and rhs must have the same shape, and
+-- | Numerical binary operation. The lhs and rhs must have the same shape, and
 -- the dtype of lhs and rhs must be 'IntType' or 'RealType'.
 numBinOp ::
   (ExprInContext lhs, ExprInContext rhs) =>
-  -- | Integer binary operator.
+  -- | Numerical binary operator.
   NumBinOp ->
   -- | Lhs expression.
   lhs ->
@@ -422,8 +469,8 @@ numBinOp op lhs' rhs' = do
     assert "lhs and rhs must have the same dtype" $ typeLhs == typeRhs
     return (shapeLhs, typeLhs)
 
--- | Number binary operation with a scalar. The dtype of lhs must be 'IntType'
--- or 'RealType'.
+-- | Numerical binary operation with a scalar. The dtype of lhs must be
+-- 'IntType' or 'RealType'.
 numBinScalarOp ::
   (ToElem a, ToDType a, ExprInContext lhs) =>
   -- | Integer binary operator.
@@ -487,7 +534,7 @@ boolBinScalarOp op lhs' rhs = do
 
 -- | Compare operation. The lhs and rhs must have the same shape, and the dtype
 -- of lhs and rhs must be 'IntType' or 'RealType'. The result of the comparison
--- is a boolean.
+-- is a boolean tensor.
 compareOp ::
   (ExprInContext lhs, ExprInContext rhs) =>
   -- | Compare operator.
@@ -510,7 +557,7 @@ compareOp op lhs' rhs' = do
     assert "lhs and rhs must have the same dtype" $ typeLhs == typeRhs
     return (shapeLhs, BoolType)
 
--- | Number unary operation. The expression must have the dtype 'IntType' or
+-- | Numerical unary operation. The expression must have the dtype 'IntType' or
 -- 'RealType'.
 numUnaryOp ::
   (ExprInContext e) =>
@@ -541,14 +588,14 @@ boolUnaryOp op expr' = do
 
 -- | Reduce operation. The expression must have the dtype 'IntType'.
 --
--- The description of the si-indices (i.e., the @'ParamDesc'@), can either be
--- @<rclass> 'TensorRight.Internal.DSL.Syntax.-->' <map>@ or @ByLabel <label> 'TensorRight.Internal.DSL.Syntax.-->' <map>@.
+-- The description of the si-indices (i.e., @'ParamDesc'@), can either be
+-- @rclass 'TensorRight.Internal.DSL.Syntax.-->' map@ or @ByLabel label 'TensorRight.Internal.DSL.Syntax.-->' map@.
 --
 -- Each sum index specifies the rclass to be reduced and the map to be used for
--- the si-indices. This can be done by either providing an 'RClassIdentifier', or
--- a label.
+-- the si-indices. This can be done by either providing an @RClass@ identifier
+-- or a label.
 --
--- Note that the reference needs to be @'ByLabel' <label>@ for labelled @RClasses@,
+-- Note that the reference needs to be @'ByLabel' label@ for labelled @RClasses@,
 -- or an @<rclass>@ otherwise. This is different from 'TensorShapeDesc', where you
 -- need to provide the labels with the @RClass@.
 reduce ::
@@ -574,7 +621,7 @@ broadcast ::
   (ExprInContext e) =>
   -- | Tensor to broadcast.
   e ->
-  -- | The shape to broadcast to. It should be disjoint from the shape of the
+  -- | The shape to broadcast with. It should be disjoint from the shape of the
   -- input tensor.
   [TensorShapeDesc] ->
   DSLContext Expr
@@ -601,6 +648,8 @@ constant i shapeDesc = do
   validTensorShape shape
   internExpr (UConstant (toElem i) shape) (toAbstractShape shape) (toDType i)
 
+-- | Checks if the specified parameter map contains all and only the
+-- aggregated-axes of the t'AbstractShape'.
 checkParamsCoverAbstractShape :: AbstractShape -> Params -> DSLContext ()
 checkParamsCoverAbstractShape AbstractShape {..} params = do
   let foldingFunc ref (l, u) = case ref of
@@ -614,7 +663,7 @@ checkParamsCoverAbstractShape AbstractShape {..} params = do
 iota ::
   -- | The shape of the tensor.
   [TensorShapeDesc] ->
-  -- | The @RClass@ along which the tensor values increment by one.
+  -- | The aggregated-axis along which the tensor values increment by one.
   RClassRef ->
   DSLContext Expr
 iota shapeDesc d = do
@@ -1038,7 +1087,7 @@ concatTensor ::
   lhs ->
   -- | The right-hand side tensor.
   rhs ->
-  -- | The rclass to concat on.
+  -- | The aggregated-axis to concat on.
   RClassRef ->
   DSLContext Expr
 concatTensor lhs' rhs' d = do

@@ -39,7 +39,8 @@ import TensorRight.Internal.DSL.Syntax (ArrowSyntax ((-->)), AtSyntax ((@@)))
 import TensorRight.Internal.Util.Error (Error, assert)
 import TensorRight.Internal.Util.Pretty (encloseList, prettyWithConstructor)
 
--- | Reference to an RClass. An RClass may be labelled or not labelled.
+-- | Reference to an RClass, also referred to as an aggregated-axis in our DSL.
+-- An RClass may be labelled or unlabelled.
 -- If an RClass is unlabelled, then it means that the RClass has exactly
 -- one-aggregated-axis, and the RClass itself acts as a reference to the
 -- said aggregated-axis.
@@ -55,7 +56,7 @@ data RClassRef
 
 type RClassRefSet = HS.HashSet RClassRef
 
--- | A Tensor Shape is a mapping from aggregated-axes to aggregated-maps, containing axes sizes.
+-- | A Tensor Shape is a mapping from aggregated-axes to aggregated-maps, which contain axes sizes.
 -- Each mapping in a tensor shape can be labelled or unlabelled.
 -- 
 -- - A labelled mapping contains the name for an aggregated-axis ('Label'),
@@ -130,7 +131,7 @@ getTensorShape' (LabelledDesc label rclass map : rest) = do
     throwError "Labelled rclass already present as unlabelled"
   return $ TensorShape (HM.insert label (rclass, map) labelled) unlabelled
 
--- | A function to convert a list of 'TensorShapeDesc' to a 'TensorShape'
+-- | A function to convert a list of 'TensorShapeDesc' to a t'TensorShape'
 -- The function makes the following checks:
 --
 -- - No two unlabelled mappings can have the same 'RClassIdentifier'.
@@ -158,7 +159,7 @@ instance TensorShapeLike TensorShape where
 instance TensorShapeLike [TensorShapeDesc] where
   toTensorShape = getTensorShape
 
--- | Represents a 'TensorShape' without any 'MapIdentifier' information.
+-- | Represents a t'TensorShape' without any 'MapIdentifier' information.
 data AbstractShape = AbstractShape
   { labelled :: HM.HashMap Label RClassIdentifier,
     unlabelled :: HS.HashSet RClassIdentifier
@@ -180,7 +181,7 @@ instance PPrint AbstractShape where
     where
       prettyLabelled label rclass = pformat rclass <> " @@ " <> pformat label
 
--- | Converts a 'TensorShape' to an 'AbstractShape'
+-- | Converts a t'TensorShape' to an t'AbstractShape'
 toAbstractShape :: TensorShape -> AbstractShape
 toAbstractShape (TensorShape labelled unlabelled) =
   AbstractShape
@@ -188,12 +189,12 @@ toAbstractShape (TensorShape labelled unlabelled) =
       unlabelled = HM.keysSet unlabelled
     }
 
--- | Returns all 'RClassRef's in an 'AbstractShape'
+-- | Returns all 'RClassRef's in an t'AbstractShape'
 abstractShapeAllRefs :: AbstractShape -> HS.HashSet RClassRef
 abstractShapeAllRefs (AbstractShape labelled unlabelled) =
   HS.map ByRClass unlabelled `HS.union` HS.map ByLabel (HM.keysSet labelled)
 
--- | Removes an 'RClassRef' from an 'AbstractShape'
+-- | Removes an 'RClassRef' from an t'AbstractShape'
 removeRClass ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -206,7 +207,7 @@ removeRClass AbstractShape {..} (ByLabel label) = do
   assert "Label not exist" $ HM.member label labelled
   return $ AbstractShape (HM.delete label labelled) unlabelled
 
--- | Returns the 'RClassIdentifier' corresponding to an 'RClassRef' given an 'AbstractShape'
+-- | Returns the 'RClassIdentifier' corresponding to an 'RClassRef' given an t'AbstractShape'
 getRClassByRClassRef ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -220,7 +221,7 @@ getRClassByRClassRef AbstractShape {..} (ByLabel label) =
     Nothing -> throwError "Label not exist"
     Just rclass -> return rclass
 
--- | Adds an 'RClassRef' to an 'AbstractShape'
+-- | Adds an 'RClassRef' to an t'AbstractShape'
 addRClassByRClassRef ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -235,12 +236,12 @@ addRClassByRClassRef AbstractShape {..} (ByLabel label) rclass = do
   assert "Label already exist" $ not $ HM.member label labelled
   return $ AbstractShape (HM.insert label rclass labelled) unlabelled
 
--- | Concatenates two 'AbstractShape's.
+-- | Concatenates two t'AbstractShape's.
 -- The function makes the following checks:
 --
--- - The input 'AbstractShape's must not have any overlapping labelled RClass.
--- - The input 'AbstractShape's must not have any overlapping unlabelled RClass.
--- - The resulting 'AbstractShape' must not have any labelled RClass that overlaps with an unlabelled RClass.
+-- - The input t'AbstractShape's must not have any overlapping labelled RClass.
+-- - The input t'AbstractShape's must not have any overlapping unlabelled RClass.
+-- - The resulting t'AbstractShape' must not have any labelled RClass that overlaps with an unlabelled RClass.
 concatAbstractShape ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->
@@ -263,7 +264,7 @@ concatAbstractShape
             (u1 `HS.union` u2)
     return newAbstractShape
 
--- | Restricts an 'AbstractShape' to the specified set of 'RClassRef's.
+-- | Restricts an t'AbstractShape' to the specified set of 'RClassRef's.
 restrictAbstractShape ::
   (MonadError T.Text m, TryMerge m) =>
   AbstractShape ->

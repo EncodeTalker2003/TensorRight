@@ -86,6 +86,7 @@ import TensorRight.Internal.Util.Error (Error)
 import TensorRight.Internal.Util.Pretty (gprettyParen, prettyWithConstructor)
 import TensorRight.Internal.Core.Tensor.TensorInt (IsTensorNum, TensorNum)
 
+-- | Internal representation of operator parameters/attributes.
 type Params = HM.HashMap RClassRef MapIdentifier
 
 data PaddingArgsExpr = PaddingArgsExpr

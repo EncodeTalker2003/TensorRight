@@ -23,12 +23,12 @@ class IsParamMaps m where
 instance IsParamMaps (HM.HashMap RClassRef MapIdentifier) where
   toParamMaps = id
 
--- | TensorRight DSL uses a list of 'ParamDesc' to represent parameter maps
+-- | TensorRight DSL uses a list of t'ParamDesc' to represent parameter maps
 instance IsParamMaps [ParamDesc] where
   toParamMaps = foldr (HM.union . toParamMaps) HM.empty
 
--- | 'ParamDesc' describes a mapping in a parameter map, which consists of an
--- 'RClassRef' and a 'MapIdentifier'. A 'ParamDesc' can be created in the
+-- | t'ParamDesc' describes a mapping in a parameter map, which consists of an
+-- 'RClassRef' and a 'MapIdentifier'. A t'ParamDesc' can be created in the
 -- following ways:
 -- 
 -- - Directly using the RClass for unlabelled mappings: @'RClassIdentifier' 'TensorRight.Internal.DSL.Syntax.-->' 'MapIdentifier'@

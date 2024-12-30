@@ -91,7 +91,7 @@ elemWiseCond f a b =
 -- For instance, @'unaryCond' (.== 0) a@, checks if for every key @k@,
 -- @a[k] .== 0@.
 --
--- The user can use any function @f@, as long as it satisfies the signature.
+-- The users can use any function @f@, as long as it satisfies the signature.
 --
 -- @
 -- 'TensorRight.precondition'' [m] $ \[m] -> 'unaryCond' (.> 1) m
@@ -128,7 +128,7 @@ elemWiseArith = HM.intersectionWith
 -- For instance, @'unaryArith' (+2) a@, return a map @r@ such that for
 -- every key @k@, @r[k] = a[k] + 2@.
 -- 
--- For @f@, users can use any binary operator, as long as it satisifies the
+-- For @f@, users can use any unary operator, as long as it satisifies the
 -- signature. For instance, this checks if @m1 == m2 + 2@
 --
 -- @
