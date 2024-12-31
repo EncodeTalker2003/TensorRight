@@ -1,254 +1,229 @@
-# TensorRight: Artifact Evaluation
+# TensorRight
 
-This repo is the artifact associated with the POPL 2025 submission "TensorRight: Automated Verification of Tensor Graph Rewrites".
+TensorRight is an automatic tool to verify tensor graph rewrites for tensors of arbitrary ranks and sizes.
+Tensor Graph Rewriting is one of the key optimizations in Tensor Compilers such as [XLA](https://github.com/openxla/xla).
 
-## List of Claims
+## Key Features of TensorRight
 
-### Claim 1: Expressiveness of TensorRight DSL
+- We introduce a core language, TensorRight DSL, to represent complex tensor graph rewrites with preconditions.
+- TensorRight DSL uses a novel axis definition, called _aggregated-axis_, which allows reasoning about an arbitrary number of dimensions.
+- TensorRight provides operator specifications that closely resemble [XLA-HLO](https://openxla.org/xla/operation_semantics).
+TensorRight implements the denotational semantics for these operators.
+- TensorRight presents an automatic verification strategy to verify tensor graph rewrites in the unbounded setting, i.e, for arbitrary ranks and sizes, by inferring a bound on aggregated-axis ranks, such that verifying the rewrite for all ranks within the bound implies correctness in the unbounded setting. <br>
+Hence, TensorRight converts the _unbounded-verification_ proof obligation to a finite set of _bounded-verification_ proof obligations, which are then dispatched to an SMT solver using symbolic execution to automatically verify rewrite rules.
+- TensorRight is implemented in Haskell and uses [Grisette](https://github.com/lsrcz/grisette) as the symbolic evaluation engine.
+TensorRight can successfully represent 121 of the 175 rewrites present in [XLA's algebraic simplifier](https://github.com/openxla/xla/blob/main/xla/hlo/transforms/simplifiers/algebraic_simplifier.cc) and is able to verify 115 of those in the unbounded setting.
 
-We compare the expressiveness of TensorRight with two other automatic tensor rewrite rules engines, [TASO](https://dl.acm.org/doi/10.1145/3341301.3359630) and [PET](https://www.usenix.org/system/files/osdi21-wang-haojie.pdf), across all the 175 rules. This corresponds to Section 8.1 and Table 1 in the paper.
+For a detailed description of our methodology, please check the POPL'25 Paper [TensorRight: Automated Verification of Tensor Graph Rewrites](https://jaiarora0011.github.io/assets/pdf/popl25-tensorright.pdf).
 
-For TensorRight, we can express 121 rules out of 175, and we implemented 118 of those in our DSL, as present in [`rules/*/Main.hs`](./rules/). Meanwhile, for TASO and PET, the number of rules they can represent was calculated based on the operators they support, as seen in their respective papers.
 
-### Claim 2: Verification Capabilities of TensorRight
+## Installation
 
-Out of the 121 rules that we can express in our DSL, we implemented 118 rules. We evaluate how many rules TensorRight can verify in the unbounded setting. We support boolean, integer, and real-valued tensors in our DSL, and the rules are verified for all valid tensor types for that rule.
+### Installing Stack
 
-We measure the time taken to verify the rules in the unbounded setting (timeout of 10s for each tensor type).
-This corresponds to Section 8.2 and Figure 10a in the paper.
-Out of the 118 rules we implemented, we are able to verify 115 rules. The remaining 3 rules timed out.
+`stack` and other tools in the Haskell Toolchain can be installed by following the instructions at [this link](https://www.haskell.org/ghcup/install/).
 
-We also plot the number of tasks (bounded-verification instances) discharged for all the verified rules in Figure 10b.
+### Installing SMT Solvers
 
-### Claim 3: How TensorRight can be used to aid compiler developers in rapid developement
+To verify the implemented rewrite rules, you need to install the Z3 and cvc5 SMT Solvers and make them available through `PATH`.
 
-We showcase this claim in Section 8.3.
-We implement the `FoldConvInputPad` rule as [conv/rule00](rules/conv/Main.hs). This rule is very restrictive, since it contains some preconditions. We show that TensorRight can prove a more general version of this rule, as implemented in [foldConvInputPadGeneral](rules/generalize/Main.hs).
+#### Installing Z3
 
-## Download, Installation and Sanity Testing
-
-### Hardware Requirements
-
-To use this artifact, you will need a x86-64 or a aarch64 machine capable of running Docker with at least 16GB of RAM.
-The docker image would be about 11GB in size.
-The artifact has not been tested on on legacy CPUs that do not support modern ISAs including AVX/AVX2.
-
-We have tested the docker image on a physical machine running Ubuntu 22.04 LTS with an Intel(R) Core(TM) i7-13700H processor and 32 GB of RAM and a MacBook Air with Apple M2 Chip and 16GB or RAM.
-The results you obtain may also vary from ours depending on your hardware and software configuration.
-
-### Download and Installation
-
-To use this artifact, you will need to install Docker on your machine.
-
-#### Install Docker
-
-These instructions have been tested on Ubuntu 22.04 LTS and are based on the official Docker [documentation](https://docs.docker.com/engine/install/ubuntu/).
+On Ubuntu, you can install Z3 with:
 
 ```bash
-## Add Docker's official GPG key:
-sudo apt update
-sudo apt -y install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-## Add the repository to Apt sources:
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt update
-
-## Install Docker
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-## Add the current user to the docker group
-sudo usermod -aG docker $USER
-
-## Log out and log back again to apply the changes
-## Check if Docker is installed correctly
-# docker --version
-# docker run hello-world
+apt update && apt install z3
 ```
 
-#### Build Docker Image or Pull from DockerHub
-
-**Expected Time**: 10-12 minutes
-
-##### Pull from DockerHub
+On macOS, you can install Z3 with [Homebrew](https://brew.sh/):
 
 ```bash
-docker pull lsrcz/tensor-right:latest
+brew install z3
 ```
 
-This command will pull the `lsrcz/tensor-right` image from DockerHub.
-The docker image is built with the [Dockerfile](Dockerfile) present in this repo.
-The docker image is based on Ubuntu 22.04 LTS and contains all the dependencies required to run the benchmarks.
+Please refer to the [Z3 homepage](https://github.com/Z3Prover/z3) for more details.
 
-##### Build from Source
+#### Installing cvc5
 
-To build the docker image, run the following command in the root directory of the artifact:
+cvc5 can be installed by downloading one of the pre-built binaries from [here](https://cvc5.github.io/downloads.html) or [building it from source](https://cvc5.github.io/docs/cvc5-1.2.0/installation/installation.html).
+
+### Testing your Installation
+
+You can test your installation by first cloning the repository, running regression tests and verifying rewrite rules.
+
+#### Build
 
 ```bash
-docker build -t tr .
+git clone https://github.com/ADAPT-uiuc/TensorRight.git && cd TensorRight/ && stack build
+
+# Regression Tests: all testcases should pass
+stack test
+
+# Verifying Rewrite Rules: 115/118 passed
+make verify
 ```
 
-This command will build the docker image named `tr` using the `Dockerfile` present in the root directory of the artifact.
+Running `make verify` tries to verify all the 118 implemented rewrite rules.
+It results in 3 expected timeouts (the actual number could vary).
 
-#### Run Docker Container
+## Usage
 
-To run the docker container, run the following command in the root directory of the artifact.
+We will now take a look at how we can use TensorRight DSL to express complex tensor graph rewrites with preconditions and verify them.
+Please refer to the [implemented rules](./rules/) for more examples.
 
-If you pulled from DockerHub:
+Consider the `DySliceToSlice` rule that we would like to express and verify in our DSL.
+
+$$
+\mathsf{dy\hbox{-}slice}(\mathsf{X}, B, L) \Rightarrow_{E - B' = L \ \wedge \ P = 1 \ \wedge \ B' = B } \mathsf{slice}(\mathsf{X}, B', E, P)
+$$
+
+The $\mathsf{dy\hbox{-}slice}$ operator extracts a sub-tensor from the input tensor $\mathsf{X}$, where the start-index for each axis is specified in $B$ and the length of the slice along each axis is passed in $L$. 
+Meanwhile, the $\mathsf{slice}$ operator also extracts a sub-tensor from within a bounding box in the input tensor $\mathsf{X}$.
+The start-indices for the bounding box are specified in $B'$, while the end-indices (exclusive) are specified in $E$.
+$P$ specifies the stride for each axis, which determines the step size between elements in the bounding box.
+
+The `DySliceToSlice` rule is generally not correct, unless $E - B'$ (the size of the bounding box in $\mathsf{slice}$) is equal to $L$ (the length in $\mathsf{dy\hbox{-}slice}$).
+The other requirements are that $\mathsf{slice}$ should skip no elements, i.e., $P=1$, and the start indices in $\mathsf{slice}$ and $\mathsf{dy\hbox{-}slice}$ must be the same, i.e., $B' = B$.
+Since these are specified in the precondition, the RHS expression is equivalent to the LHS expression.
+
+We support verification of boolean, integer, and real valued tensors.
+Since we would like to verify the `DySliceToSlice` rule for all tensor types, we declare the rule in our DSL as follows:
+
+```haskell
+rule :: forall a. AnyDTypeRule a
+rule = do
+  ...
+```
+
+We can use the type parameter `a` inside the rule definition to declare tensors of a polymorphic type.
+
+We would like to verify the rule for an arbitrary number of named-axes in $\mathsf{X}$.
+Since there is only one "role" of axes in the rewrite rule, i.e., every axis is getting sliced, we need only one aggregated-axis or one `RClass`, which we can declare using `newRClass`:
+
+```haskell
+rcls <- newRClass "rcls"
+```
+
+`rcls` can be thought of as an abstract set of named-axes, which can be instantiated to any number of named-axes.
+This allows us to specify an abstract representation of a rewrite rule, which can be specialized to any rank.
+
+We also want to verify the rule for arbitrary sizes and operator attributes like $B$, $E$, $L$, etc.
+We represent these using abstract maps, which can be instantiated to maps of concrete rank.
+We can declare maps on an `RClass` in our DSL using `newMaps`:
+
+```haskell
+[size, start, start', length, end, stride] <-
+    newMaps ["size", "start", "start'", "length", "end", "stride"] rcls
+```
+
+We then declare an abstract tensor of shape `rcls --> size` containing elements of type `a` using `newTensor`:
+
+```haskell
+tensor <- newTensor @a "X" [rcls --> size]
+```
+
+The resulting tensor is said to have arbitrary values of type `a`.
+
+We define LHS and RHS tensor expressions using the operators available in our DSL:
+
+```haskell
+lhs <-
+  dynamicSlice tensor $
+    DySlice {start = [rcls --> start], sizes = [rcls --> length]}
+rhs <-
+  slice tensor $
+    Slice
+    { start = [rcls --> start'],
+      end = [rcls --> end],
+      strides = [rcls --> stride]
+    }
+```
+
+We can specify preconditions using `precondition`:
+
+```haskell
+precondition [end, start', length] $ \[e, s', l] -> e - s' .== l
+precondition [stride] $ \[p] -> p .== 1
+precondition [start, start'] $ \[s, s'] -> s' .== s
+```
+
+Finally, we declare a rewrite rule using the `rewrite` construct:
+
+```haskell
+rewrite "DynamicSlice(X) => Slice(X)" lhs rhs
+```
+
+Putting everything together, the specification of the `DySliceToSlice` rule in TensorRight DSL looks like the following:
+
+```haskell
+rule :: forall a. AnyDTypeRule a
+rule = do
+  rcls <- newRClass "rcls"
+  [size, start, start', length, end, stride] <-
+    newMaps ["size", "start", "start'", "length", "end", "stride"] rcls
+  tensor <- newTensor @a "X" [rcls --> size]
+
+  lhs <-
+    dynamicSlice tensor $
+      DySlice {start = [rcls --> start], sizes = [rcls --> length]}
+  rhs <-
+    slice tensor $
+      Slice
+      { start = [rcls --> start'],
+        end = [rcls --> end],
+        strides = [rcls --> stride]
+      }
+
+  precondition [end, start', length] $
+    \[end, start', length] -> end - start' .== length
+  precondition [stride] $ \[stride] -> stride .== 1
+  precondition [start, start'] $ \[start, start'] -> start' .== start
+
+  rewrite "DynamicSlice(X) => Slice(X)" lhs rhs
+```
+
+We can verify the rule by using `verifyAnyDTypeDSL`:
+
+```haskell
+main :: IO ()
+main = do verifyAnyDTypeDSL rule
+```
+
+## Documentation
+
+Please build the haddock doc using:
+```bash
+stack haddock
+```
+
+This will build the documentation in a folder like:
 
 ```bash
-docker run --rm -v "$(pwd)/plot:/home/tr/plot" -it lsrcz/tensor-right:latest /bin/bash
+.stack-work/install/x86_64-linux/<hash>/9.8.2/doc/index.html
 ```
 
-If you built the image from source code:
+You can navigate to have a look at the full API documentation. If you are using
+vscode, the live server plugin might be helpful for hosting the documentation.
 
-```bash
-docker run --rm -v "$(pwd)/plot:/home/tr/plot" -it tr /bin/bash
+## License
+TensorRight is distributed under the terms of the Apache-2.0 license.
+The [LICENSE](./LICENSE) file contains the full license text.
+
+## Citing TensorRight
+
+If you find TensorRight useful, please consider attributing to the following citation:
+```bibtex
+@inproceedings{10.1145/3704865,
+  abbr={POPL},
+  title={TensorRight: Automated Verification of Tensor Graph Rewrites},
+  author={Arora, Jai and Lu, Sirui and Jain, Devansh and Xu, Tianfan and Houshmand, Farzin and Phothilimthana, Phitchaya Mangpo and Lesani, Mohsen and Narayanan, Praveen and Murthy, Karthik Srinivasa and Bodik, Rastislav and Sabne, Amit and Mendis, Charith},
+  journal={PACMPL},
+  booktitle={Proceedings of the 52nd ACM SIGPLAN Symposium on Principles of Programming Languages},
+  volume={9},
+  number={POPL},
+  year={2025},
+  pdf={popl25-tensorright.pdf},
+  doi={10.1145/3704865},
+  url={https://doi.org/10.1145/3704865}
+}
 ```
-
-You will be dropped into a bash shell inside the docker container, in the `/home/tr/` directory.
-The `plot` directory in the host machine is mounted to the `/home/tr/plot/` directory in the docker container.
-This is where the timing plot generated will be saved.
-The Makefile in this directory contains the commands to run the benchmarks and generate the timing plot.
-Details on how to run the benchmarks and generate the timing plot are provided in the next section.
-
-### Sanity Testing
-
-To test if the setup correctly, run the following command in the docker container:
-
-```bash
-stack exec rules-mul | grep -i fail || echo "Sanity Test passed"
-```
-
-This command will run the `rules-mul` executable, which verifies proper installation of the four important components: `z3`, `cvc5`, `stack` and `grisette`.
-If the setup is correct, you should see the `Sanity Test passed` message printed on the terminal and no error messages.
-
-## Evaluation Instructions
-
-### Claim 2: Verification Capabilties and Statistics
-
-**Expected Time**: 3-4 minutes
-
-Script for this step:
-
-```bash
-make verify && make plot
-```
-
-`make verify` tries to verify all the 118 implemented rewrite rules, while logging the output in `plot/result.txt` (and also on stdout).
-`make plot` will consume the log and print statistics like minimum and maximum verification times across all rules.
-It also generates a timing plot as `plot/timing_plot.pdf` and the trend of number of tasks as `plot/num_tasks.pdf`.
-
-**Expected Output should like**
-
-```
-====> Add(Add(A,Const), Const2) ⇒ Add(A,Add(Const,Const2))
->>> Int
-[INFO-Int]: Inferred bounds: fromList [(adim,1)]
-[INFO-Int]: Number of bounded verification tasks: 1
-[SUCCESS-Int]: [4.37419430090813e-2s] Verification succeeded.
->>> Real
-[INFO-Real]: Inferred bounds: fromList [(adim,1)]
-[INFO-Real]: Number of bounded verification tasks: 1
-[SUCCESS-Real]: [4.0530437996494584e-2s] Verification succeeded.
->>> Overall
-[SUCCESS-Overall]: [8.427238100557588e-2s] Verification succeeded.
-====> Add(A,0)⇒A
->>> Int
-[INFO-Int]: Inferred bounds: fromList [(adim,1)]
-[INFO-Int]: Number of bounded verification tasks: 1
-[SUCCESS-Int]: [3.669909200107213e-2s] Verification succeeded.
->>> Real
-[INFO-Real]: Inferred bounds: fromList [(adim,1)]
-[INFO-Real]: Number of bounded verification tasks: 1
-[SUCCESS-Real]: [3.956435700820293e-2s] Verification succeeded.
->>> Overall
-[SUCCESS-Overall]: [7.626344900927506e-2s] Verification succeeded.
-...
-...
-[SUCCESS-Overall]: [7.529329899989534e-2s] Verification succeeded.
-Total success: 115
-Total failed: 3
-stack build
-if [ ! -f ./plot/result.txt ]; then ./runall.sh 2> >(tee ./plot/result.txt); fi
-cd plot && python3 timing_plot.py
-...
-...
-Number of rules with 1 tasks: 110
-Number of rules with 4 tasks: 2
-Number of rules with 2 tasks: 3
-```
-
-The command outputs the number of rules that the tool was and wasn't able to verify, as shown in the expected output, along with some statistics regarding the verification of all the rules.
-
-The paper claims that TensorRight can verify 115 out of 118 rules and 3 rules cannot be verified. The 3 rules that fail to verify (timeouts) are mentioned below:
-
-- `Slice(Reverse(A,dims),start,stride,end) ⇒ Reverse(Slice(A,...),dims)`
-- `Rem(Add(Iota,Const), Const) ⇒ Rem(Iota,Const)`
-- `Rem(Add(X,Const), Const) ⇒ Rem(X,Const)`
-
-The number of timeouts could vary depending on the host machine.
-
-The paper also claims the following distribution of the number of tasks for the verified rules:
-- Number of rules with 1 tasks: 110
-- Number of rules with 2 tasks: 3
-- Number of rules with 4 tasks: 2
-
-Both the generated plots can be compared with Figure 10a and Figure 10b in the paper.
-
-### Claim 3: Generalized Rule
-
-**Expected Time**: 5-6 minutes
-
-We implement the `FoldConvInputPad` rule as [conv/rule00](rules/conv/Main.hs). We show that TensorRight can prove a more general version of this rule, as implemented in [foldConvInputPadGeneral](rules/generalize/Main.hs). The following command verifies the generalized rule:
-
-```bash
-make generalize
-```
-
-**Expected output should look like**
-
-```
-====> Conv(Pad(input, innerLow, innerInt, innerHigh), weights, convLow, convInt, convHigh, rdilation)
- ⇒
-Conv(input, weights, convLowOut, convIntOut, convHighOut, rdilation)
->>> Int
-...
-[WARNING]: Some SI cannot be accessed.
-  Verified forall left si exists right si.
-  Verified forall right si exists left si.
-[SUCCESS-Int]: [58.718182109001646s] Verification succeeded.
->>> Real
-...
-[SUCCESS-Real]: [192.946455917001s] Verification succeeded.
->>> Overall
-[SUCCESS-Overall]: [251.66463802600265s] Verification succeeded.
-```
-
-The generated warnings can be safely ignored, as long as the rules are verified.
-
-## Structure of the Artifact
-
-- [README.md](./README.md): instructions to run the artifact
-- [LICENSE](./LICENSE): Apache 2.0 License file for the artifact
-- [Dockerfile](Dockerfile): installation and configuration steps for the Docker image
-- [stack.yaml](stack.yaml): configuration for the Haskell build tool `stack`
-- [package.yaml](package.yaml): package metadata for the Haskell project
-- [src/](src/): source code for TensorRight
-  - [src/TensorRight/Internal/Core/](src/TensorRight/Internal/Core/): semantics of operators in TensorRight
-  - [src/TensorRight/Internal/DSL/](src/TensorRight/Internal/DSL/): TensorRight DSL implementation
-  - [src/TensorRight/Internal/Util/](src/TensorRight/Internal/Util/): utility functions used in TensorRight
-  - [src/TensorRight.hs](src/TensorRight.hs): top-level module for TensorRight library
-- [test/](test/): unit tests for TensorRight implementation
-- [rules/](rules/): rewrite rules implemented in the TensorRight DSL
-- [runall.sh](runall.sh): script to perform verification on 118 implemented rules
-- [plot/](plot/): plotting script and results generated in Claim 2
-  - [plot/timing_plot.py](plot/timing_plot.py): python script to generate the timing plot for Claim 2
-- [Makefile](Makefile): commands to run the benchmarks and generate the timing plot
-  - `make verify`: verifies the rewrite rules and logs the output in `plot/result.txt`
-  - `make plot`: generates the timing plot `plot/timing_plot.py` using the data in `plot/result.txt`
-  - `make generalize`: verifies the generalized rewrite rule [foldConvInputPadGeneral](rules/generalize/Main.hs)
-  - `make build`: builds the TensorRight project if not already built
-  - `make clean`: cleans the build artifacts
