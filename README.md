@@ -14,8 +14,11 @@ Hence, TensorRight converts the _unbounded-verification_ proof obligation to a f
 - TensorRight is implemented in Haskell and uses [Grisette](https://github.com/lsrcz/grisette) as the symbolic evaluation engine.
 TensorRight can successfully represent 121 of the 175 rewrites present in [XLA's algebraic simplifier](https://github.com/openxla/xla/blob/main/xla/hlo/transforms/simplifiers/algebraic_simplifier.cc) and is able to verify 115 of those in the unbounded setting.
 
-For a detailed description of our methodology, please check the POPL'25 Paper [TensorRight: Automated Verification of Tensor Graph Rewrites](https://jaiarora0011.github.io/assets/pdf/popl25-tensorright.pdf).
+## Publications
 
+- [TensorRight: Automated Verification of Tensor Graph Rewrites](https://jaiarora0011.github.io/assets/pdf/popl25-tensorright.pdf) <br/>
+Jai Arora, Sirui Lu, Devansh Jain, Tianfan Xu, Farzin Houshmand, Phitchaya Mangpo Phothilimthana, Mohsen Lesani, Praveen Narayanan, Karthik Srinivasa Murthy, Rastislav Bodik, Amit Sabne, and Charith Mendis. <br/>
+In Proceedings of the 52nd ACM SIGPLAN Symposium on Principles of Programming Languages (POPL'25), January 2025, Denver, Colorado, USA (To Appear)
 
 ## Installation
 
@@ -208,22 +211,3 @@ vscode, the live server plugin might be helpful for hosting the documentation.
 ## License
 TensorRight is distributed under the terms of the Apache-2.0 license.
 The [LICENSE](./LICENSE) file contains the full license text.
-
-## Citing TensorRight
-
-If you find TensorRight useful, please consider attributing to the following citation:
-```bibtex
-@inproceedings{10.1145/3704865,
-  abbr={POPL},
-  title={TensorRight: Automated Verification of Tensor Graph Rewrites},
-  author={Arora, Jai and Lu, Sirui and Jain, Devansh and Xu, Tianfan and Houshmand, Farzin and Phothilimthana, Phitchaya Mangpo and Lesani, Mohsen and Narayanan, Praveen and Murthy, Karthik Srinivasa and Bodik, Rastislav and Sabne, Amit and Mendis, Charith},
-  journal={PACMPL},
-  booktitle={Proceedings of the 52nd ACM SIGPLAN Symposium on Principles of Programming Languages},
-  volume={9},
-  number={POPL},
-  year={2025},
-  pdf={popl25-tensorright.pdf},
-  doi={10.1145/3704865},
-  url={https://doi.org/10.1145/3704865}
-}
-```
