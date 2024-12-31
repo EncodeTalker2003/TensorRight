@@ -20,6 +20,25 @@ TensorRight can successfully represent 121 of the 175 rewrites present in [XLA's
 Jai Arora, Sirui Lu, Devansh Jain, Tianfan Xu, Farzin Houshmand, Phitchaya Mangpo Phothilimthana, Mohsen Lesani, Praveen Narayanan, Karthik Srinivasa Murthy, Rastislav Bodik, Amit Sabne, and Charith Mendis. <br/>
 In Proceedings of the 52nd ACM SIGPLAN Symposium on Principles of Programming Languages (POPL'25), January 2025, Denver, Colorado, USA (To Appear)
 
+<details class="bibtex">
+    <summary>BibTeX</summary>
+    <pre><code>@inproceedings{tensorright,
+  abbr={POPL},
+  title={TensorRight: Automated Verification of Tensor Graph Rewrites},
+  author={Arora, Jai and Lu, Sirui and Jain, Devansh and Xu, Tianfan and Houshmand, Farzin and Phothilimthana, Phitchaya Mangpo and Lesani, Mohsen and Narayanan, Praveen and Murthy, Karthik Srinivasa and Bodik, Rastislav and Sabne, Amit and Mendis, Charith},
+  journal={PACMPL},
+  booktitle={Proceedings of the 52nd ACM SIGPLAN Symposium on Principles of Programming Languages},
+  volume={9},
+  number={POPL},
+  year={2025},
+  pdf={popl25-tensorright.pdf},
+  doi={10.1145/3704865},
+  url={https://doi.org/10.1145/3704865},
+  abstract={Tensor compilers, essential for generating efficient code for deep learning models across various applications, employ tensor graph rewrites as one of the key optimizations. These rewrites optimize tensor computational graphs with the expectation of preserving semantics for tensors of arbitrary rank and size. Despite this expectation, to the best of our knowledge, there does not exist a fully automated verification system to prove the soundness of these rewrites for tensors of arbitrary rank and size. Previous works, while successful in verifying rewrites with tensors of concrete rank, do not provide guarantees in the unbounded setting. To fill this gap, we introduce TensorRight, the first automatic verification system that can verify tensor graph rewrites for input tensors of arbitrary rank and size. We introduce a core language, TensorRight DSL, to represent rewrite rules using a novel axis definition, called aggregated-axis, which allows us to reason about an unbounded number of axes. We achieve unbounded verification by proving that there exists a bound on tensor ranks, under which bounded verification of all instances implies the correctness of the rewrite rule in the unbounded setting. We derive an algorithm to compute this rank using the denotational semantics of TensorRight DSL. TensorRight employs this algorithm to generate a finite number of bounded-verification proof obligations, which are then dispatched to an SMT solver using symbolic execution to automatically verify the correctness of the rewrite rules. We evaluate TensorRight's verification capabilities by implementing rewrite rules present in XLA's algebraic simplifier. The results demonstrate that TensorRight can prove the correctness of 115 out of 175 rules in their full generality, while the closest automatic, bounded-verification system can express only 18 of these rules.}
+}
+</code></pre>
+</details>
+
 ## Installation
 
 ### Installing Stack
