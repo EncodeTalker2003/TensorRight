@@ -18,6 +18,7 @@ import Data.Function (on)
 import qualified Data.HashMap.Lazy as HM
 import qualified Data.HashSet as HS
 import Data.List (groupBy, sortOn)
+import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.String (IsString (fromString))
 import qualified Data.Text as T
 import Data.Typeable (cast)
@@ -25,39 +26,52 @@ import GHC.Generics (Generic)
 import Grisette
   ( Default (Default),
     GrisetteSMTConfig,
-    Identifier (IdentifierWithInfo),
+    Identifier (Identifier),
+    LinkedRep (underlyingTerm),
     LogicalOp ((.&&)),
-    PPrint (pformat),
+    PPrint,
+    SExpr (List),
     Solvable (con, ssym),
     SolvingFailure (Unsat),
+    SomeTerm (SomeTerm),
     SymBool (SymBool),
     SymEq ((./=)),
     Symbol (SimpleSymbol),
+    Term,
     TypedSymbol (TypedSymbol, unTypedSymbol),
     solve,
-    withInfo,
+    someTermSize,
+    withMetadata,
+    pattern ApplyTerm,
+    pattern ConTerm,
+    pattern DistinctTerm,
+    pattern Metadata,
+    pattern SubTerms,
+    pattern SymTerm,
   )
-import Grisette.Internal.SymPrim.Prim.Internal.Term
-  ( LinkedRep (underlyingTerm),
-    SupportedPrim,
-    Term (AbsNumTerm, AddNumTerm, AndTerm, ApplyTerm, ConTerm, DivIntegralTerm, EqTerm, ITETerm, LeOrdTerm, LtOrdTerm, ModIntegralTerm, MulNumTerm, NegNumTerm, NotTerm, OrTerm, QuotIntegralTerm, RemIntegralTerm, SignumNumTerm, SymTerm, FdivTerm, FloatingUnaryTerm),
-    pevalNEqTerm,
-    pformat,
+import TensorRight.Internal.Core.Axis
+  ( Axis (Axis, LabelledAxis),
+    AxisMapLike (fromHashMap),
+    Indices,
   )
-import Grisette.Internal.SymPrim.Prim.Internal.Utils (pattern Dyn)
-import Grisette.Internal.SymPrim.Prim.SomeTerm (SomeTerm (SomeTerm))
-import Grisette.Internal.SymPrim.Prim.TermUtils (someTermSize)
-import TensorRight.Internal.Core.Axis (Axis (Axis, LabelledAxis), AxisMapLike (fromHashMap), Indices)
 import TensorRight.Internal.Core.Tensor (tensorDType)
-import TensorRight.Internal.Core.Verify (VerifyTask (VerifyTask), getTensorWithValidityCondition, rewritingRuleAccess)
-import TensorRight.Internal.DSL.Eval (SymIdentInfo (SymMap, SymTensor), getAxisName)
+import TensorRight.Internal.Core.Verify
+  ( VerifyTask (VerifyTask),
+    getTensorWithValidityCondition,
+    rewritingRuleAccess,
+  )
+import TensorRight.Internal.DSL.Eval
+  ( SymIdentInfo (SymMap, SymTensor),
+    getAxisName,
+  )
 import TensorRight.Internal.DSL.Identifier (RClassIdentifier, TensorIdentifier)
-import TensorRight.Internal.DSL.Shape (AbstractShape (AbstractShape, labelled, unlabelled))
-
-instance PPrint SomeTerm where
-  pformat (SomeTerm t) =
-    Grisette.pformat $
-      Grisette.Internal.SymPrim.Prim.Internal.Term.pformat t
+import TensorRight.Internal.DSL.Shape
+  ( AbstractShape
+      ( AbstractShape,
+        labelled,
+        unlabelled
+      ),
+  )
 
 newtype AnalysisState = AnalysisState
   { termRClassTensors ::
@@ -98,84 +112,23 @@ analysisTermState' ::
 analysisTermState' (SomeTerm t) = do
   case t of
     ConTerm {} -> return (HS.empty, HS.empty)
-    SymTerm _ symb -> case unTypedSymbol symb of
-      SimpleSymbol (IdentifierWithInfo _ info) ->
-        case cast info of
-          Just (SymMap rclass _ _) -> do
+    SymTerm symb -> case unTypedSymbol symb of
+      SimpleSymbol (Identifier _ (List [])) ->
+        return (HS.empty, HS.empty)
+      SimpleSymbol (Identifier _ meta) ->
+        case meta of
+          Metadata (SymMap rclass _ _) -> do
             return (HS.singleton rclass, HS.empty)
-          Just (SymTensor t) -> do
+          Metadata (SymTensor t) -> do
             return (HS.empty, HS.singleton t)
-          _ -> error "Unexpected info"
+          _ -> error $ "Unexpected metadata: " <> show meta
       _ -> return (HS.empty, HS.empty)
-    EqTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    ITETerm _ cond t e -> do
-      (condRClasses, condTensors) <- analysisTermState $ SomeTerm cond
-      (tRClasses, tTensors) <- analysisTermState $ SomeTerm t
-      (eRClasses, eTensors) <- analysisTermState $ SomeTerm e
-      return
-        ( condRClasses <> tRClasses <> eRClasses,
-          condTensors <> tTensors <> eTensors
-        )
-    NotTerm _ t -> analysisTermState $ SomeTerm t
-    OrTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    AndTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    AddNumTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    NegNumTerm _ t -> analysisTermState $ SomeTerm t
-    MulNumTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    AbsNumTerm _ t -> analysisTermState $ SomeTerm t
-    SignumNumTerm _ t -> analysisTermState $ SomeTerm t
-    LtOrdTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    LeOrdTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    ApplyTerm _ f args -> do
-      (fRClasses, lTensors) <- analysisTermState $ SomeTerm f
-      (argsRClasses, rTensors) <- analysisTermState $ SomeTerm args
-      return (fRClasses <> argsRClasses, lTensors <> rTensors)
-    DivIntegralTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    ModIntegralTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    QuotIntegralTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    RemIntegralTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    FdivTerm _ l r -> do
-      (lRClasses, lTensors) <- analysisTermState $ SomeTerm l
-      (rRClasses, rTensors) <- analysisTermState $ SomeTerm r
-      return (lRClasses <> rRClasses, lTensors <> rTensors)
-    FloatingUnaryTerm _ _ l -> analysisTermState $ SomeTerm l
-    _ -> error "Should not happen"
+    SubTerms ts -> do
+      r <- traverse analysisTermState ts
+      return $ mconcat r
 
 getAllConditions :: AnalysisState -> SomeTerm -> HS.HashSet SomeTerm
-getAllConditions AnalysisState {..} st@(SomeTerm t) =
+getAllConditions state@AnalysisState {..} st@(SomeTerm t) =
   case HM.lookup st termRClassTensors of
     Just (rclasses, _) | HS.null rclasses -> HS.empty
     Just (_, tensors) | HS.null tensors ->
@@ -185,60 +138,24 @@ getAllConditions AnalysisState {..} st@(SomeTerm t) =
     Just _ -> goBody t
     Nothing -> error "Term not found"
   where
-    goSub :: forall a. (SupportedPrim a) => Term a -> HS.HashSet SomeTerm
-    goSub = getAllConditions AnalysisState {..} . SomeTerm
-    goBody :: forall a. (SupportedPrim a) => Term a -> HS.HashSet SomeTerm
-    goBody (ConTerm _ _) = error "Should not happen"
-    goBody (SymTerm _ _) = error "Should not happen"
-    goBody (EqTerm _ l r) = goSub l <> goSub r
-    goBody (ITETerm _ cond t e) = goSub cond <> goSub t <> goSub e
-    goBody (NotTerm _ t) = goSub t
-    goBody (OrTerm _ l r) = goSub l <> goSub r
-    goBody (AndTerm _ l r) = goSub l <> goSub r
-    goBody (AddNumTerm _ l r) = goSub l <> goSub r
-    goBody (NegNumTerm _ t) = goSub t
-    goBody (MulNumTerm _ l r) = goSub l <> goSub r
-    goBody (AbsNumTerm _ t) = goSub t
-    goBody (SignumNumTerm _ t) = goSub t
-    goBody (LtOrdTerm _ l r) = goSub l <> goSub r
-    goBody (LeOrdTerm _ l r) = goSub l <> goSub r
+    goSome :: SomeTerm -> HS.HashSet SomeTerm
+    goSome = getAllConditions state
+    goBody :: forall a. Term a -> HS.HashSet SomeTerm
+    goBody (ConTerm _) = error "Should not happen"
+    goBody (SymTerm _) = error "Should not happen"
     goBody ApplyTerm {} = HS.empty
-    goBody (DivIntegralTerm _ l r) = goSub l <> goSub r
-    goBody (ModIntegralTerm _ l r) = goSub l <> goSub r
-    goBody (QuotIntegralTerm _ l r) = goSub l <> goSub r
-    goBody (RemIntegralTerm _ l r) = goSub l <> goSub r
-    goBody (FdivTerm _ l r) = goSub l <> goSub r
-    goBody (FloatingUnaryTerm _ _ l) = goSub l
-    goBody _ = error "Should not happen"
+    goBody (SubTerms ts) = mconcat $ goSome <$> ts
 
 getAllAccesses :: AnalysisState -> SomeTerm -> HS.HashSet SomeTerm
-getAllAccesses AnalysisState {..} st@(SomeTerm t) =
+getAllAccesses state@AnalysisState {..} st@(SomeTerm t) =
   case t of
-    ConTerm _ _ -> HS.empty
-    SymTerm _ _ -> HS.empty
-    EqTerm _ l r -> goSub l <> goSub r
-    ITETerm _ cond t e -> goSub cond <> goSub t <> goSub e
-    NotTerm _ t -> goSub t
-    OrTerm _ l r -> goSub l <> goSub r
-    AndTerm _ l r -> goSub l <> goSub r
-    AddNumTerm _ l r -> goSub l <> goSub r
-    NegNumTerm _ t -> goSub t
-    MulNumTerm _ l r -> goSub l <> goSub r
-    AbsNumTerm _ t -> goSub t
-    SignumNumTerm _ t -> goSub t
-    LtOrdTerm _ l r -> goSub l <> goSub r
-    LeOrdTerm _ l r -> goSub l <> goSub r
+    ConTerm _ -> HS.empty
+    SymTerm _ -> HS.empty
     ApplyTerm {} -> HS.singleton st
-    DivIntegralTerm _ l r -> goSub l <> goSub r
-    ModIntegralTerm _ l r -> goSub l <> goSub r
-    QuotIntegralTerm _ l r -> goSub l <> goSub r
-    RemIntegralTerm _ l r -> goSub l <> goSub r
-    FdivTerm _ l r -> goSub l <> goSub r
-    FloatingUnaryTerm _ _ l -> goSub l
-    _ -> error "Should not happen"
+    SubTerms ts -> mconcat $ go <$> ts
   where
-    goSub :: forall a. (SupportedPrim a) => Term a -> HS.HashSet SomeTerm
-    goSub = getAllAccesses AnalysisState {..} . SomeTerm
+    go :: SomeTerm -> HS.HashSet SomeTerm
+    go = getAllAccesses state
 
 conditionEquivalent ::
   GrisetteSMTConfig -> SymBool -> SomeTerm -> SomeTerm -> IO Bool
@@ -257,12 +174,14 @@ accessEquivalent ::
   GrisetteSMTConfig -> SymBool -> SomeTerm -> SomeTerm -> IO Bool
 accessEquivalent solverConfig allPreCond (SomeTerm l) (SomeTerm r) =
   case (l, r) of
-    (ApplyTerm _ (f1 :: Term f1) (args1 :: Term args1), ApplyTerm _ f2 args2) ->
+    (ApplyTerm (f1 :: Term f1) (args1 :: Term args1), ApplyTerm f2 args2) ->
       case (cast f2, cast args2) of
         (Just (f2' :: Term f1), _) | f1 /= f2' -> return False
         (Just (_ :: Term f1), Just (args2' :: Term args1)) -> do
           r <-
-            solve solverConfig (allPreCond .&& SymBool (pevalNEqTerm args1 args2'))
+            solve
+              solverConfig
+              (allPreCond .&& SymBool (DistinctTerm (args1 :| [args2'])))
           case r of
             Left Unsat -> return True
             Left err -> fail $ "Unexpected solver failure: " <> show err
@@ -297,11 +216,9 @@ groupAccessByTensors = groupBy (on (==) termTensor) . sortOn termTensor
     termTensor
       ( SomeTerm
           ( ApplyTerm
-              _
               ( SymTerm
-                  _
                   ( TypedSymbol
-                      (SimpleSymbol (IdentifierWithInfo _ (Dyn (SymTensor t))))
+                      (SimpleSymbol (Identifier _ (Metadata (SymTensor t))))
                     )
                 )
               _
@@ -389,7 +306,9 @@ abstractShapeAccess AbstractShape {..} = do
       HM.fromList $
         ( \rclass ->
             ( Axis $ getAxisName rclass 0,
-              ssym $ withInfo "access" $ SymMap rclass 0 "#accnolabel"
+              ssym $
+                withMetadata "access" $
+                  SymMap rclass 0 "#accnolabel"
             )
         )
           <$> HS.toList unlabelled
@@ -398,7 +317,7 @@ abstractShapeAccess AbstractShape {..} = do
         ( \(label, rclass) ->
             ( LabelledAxis label $ getAxisName rclass 0,
               ssym $
-                withInfo "access" $
+                withMetadata "access" $
                   SymMap rclass 0 $
                     fromString $
                       T.unpack label

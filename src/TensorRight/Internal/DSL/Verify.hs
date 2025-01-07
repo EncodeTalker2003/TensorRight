@@ -36,12 +36,12 @@ import Grisette
     GrisetteSMTConfig,
     LogicalOp ((.&&)),
     Solvable (con, ssym),
+    SymBool,
     simpleMerge,
     symAnd,
-    withInfo,
+    withMetadata,
     z3,
   )
-import Grisette.Internal.SymPrim.SymBool (SymBool)
 import TensorRight.Internal.Core.Axis (Axis (Axis), AxisMapLike (fromHashMap))
 import TensorRight.Internal.Core.Tensor (numTensorAssumption)
 import TensorRight.Internal.Core.Tensor.TensorInt (TensorInt, TensorReal)
@@ -71,12 +71,12 @@ import TensorRight.Internal.DSL.DSL
 import TensorRight.Internal.DSL.Eval
   ( EvalState
       ( EvalState,
-        rclasses,
         allTensorDTypes,
         allTensorShapes,
         evaluated,
         exprShapes,
-        maps
+        maps,
+        rclasses
       ),
     SymIdentInfo (SymMap),
     eval,
@@ -119,13 +119,13 @@ verifyDSLWithNDim solverConfig rewrite Env {..} ndim = do
         HM.fromList $
           ( \(mapIdent, rclassIdent) ->
               let rclassAxes = rclasses HM.! rclassIdent
-                  identForAxis i = withInfo "map" $ SymMap rclassIdent i mapIdent
+                  identForAxis i = withMetadata "map" $ SymMap rclassIdent i mapIdent
                in ( mapIdent,
                     HM.fromList
                       [ ( getAxisName rclassIdent axis,
                           ssym $ identForAxis axis
                         )
-                        | axis <- toList rclassAxes
+                      | axis <- toList rclassAxes
                       ]
                   )
           )
@@ -148,8 +148,7 @@ verifyDSLWithNDim solverConfig rewrite Env {..} ndim = do
                   (reverse monitoringExprs)
               monitoringSizes <-
                 traverse
-                  ( \(name, rclassref, map) -> (name,) <$> getAxisMapLike rclassref map
-                  )
+                  (\(name, rclassref, map) -> (name,) <$> getAxisMapLike rclassref map)
                   (reverse monitoringMaps)
               assumptions <-
                 traverse

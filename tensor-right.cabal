@@ -39,11 +39,11 @@ library
       Paths_tensor_right
   hs-source-dirs:
       src
-  ghc-options: -Wextra -Wcompat -Widentities -Wincomplete-record-updates -Wmissing-export-lists -Wmissing-home-modules -Wmissing-import-lists -Wpartial-fields -Wunused-type-patterns
+  ghc-options: -Wextra -Wcompat -Widentities -Wincomplete-record-updates -Wmissing-export-lists -Wmissing-home-modules -Wmissing-import-lists -Wpartial-fields -Wunused-type-patterns -Wno-x-partial -Wno-unrecognised-warning-flags
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -72,7 +72,7 @@ executable rules-add
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -102,7 +102,7 @@ executable rules-broadcast
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -132,7 +132,7 @@ executable rules-clamp
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -162,7 +162,7 @@ executable rules-compare
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -192,7 +192,7 @@ executable rules-concat
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -222,7 +222,7 @@ executable rules-conv
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -252,7 +252,7 @@ executable rules-debug
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -282,7 +282,7 @@ executable rules-divmod
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -312,7 +312,7 @@ executable rules-dot
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -342,7 +342,7 @@ executable rules-dyslice
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -372,7 +372,7 @@ executable rules-dyupslice
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -402,7 +402,7 @@ executable rules-generalize
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -432,7 +432,7 @@ executable rules-iota
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -462,7 +462,7 @@ executable rules-logical
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -492,7 +492,7 @@ executable rules-max
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -522,7 +522,7 @@ executable rules-mul
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -552,7 +552,7 @@ executable rules-not
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -582,7 +582,7 @@ executable rules-pad
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -612,7 +612,7 @@ executable rules-reduce
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -642,7 +642,7 @@ executable rules-relabel
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -672,7 +672,7 @@ executable rules-reverse
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -702,7 +702,7 @@ executable rules-select
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -732,7 +732,7 @@ executable rules-slice
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -762,7 +762,7 @@ executable rules-sub
   build-depends:
       base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers
@@ -790,7 +790,7 @@ test-suite spec
     , QuickCheck
     , base >=4.14 && <5
     , deepseq
-    , grisette ==0.8.*
+    , grisette ==0.11.*
     , hashable
     , mtl
     , ordered-containers

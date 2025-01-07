@@ -4,7 +4,9 @@
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module TensorRight.Internal.DSL.Eval
   ( getAxisName,
@@ -29,15 +31,18 @@ import qualified Data.Set.Ordered as OS
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Grisette
-  ( LogicalOp (false, (.||)),
+  ( AsMetadata (asMetadata, fromMetadata),
+    LogicalOp (false, (.||)),
+    SExpr (Atom, List),
     SymBool,
     SymEq ((./=)),
     SymInteger (SymInteger),
     TypedSymbol (TypedSymbol),
-    modifyIdentifier,
-    withInfo,
+    mapIdentifier,
+    mapMetadata,
+    withMetadata,
+    pattern SymTerm,
   )
-import Grisette.Internal.SymPrim.Prim.Internal.Term (Term (SymTerm), symTerm)
 import Language.Haskell.TH.Syntax (Lift)
 import TensorRight.Internal.Core.Axis
   ( Axes,
@@ -147,10 +152,10 @@ import TensorRight.Internal.DSL.Expr
     SliceArgsExpr (SliceArgsExpr, end, start, strides),
     exprId,
   )
-import TensorRight.Internal.DSL.Identifier (RClassIdentifier, MapIdentifier, TensorIdentifier)
+import TensorRight.Internal.DSL.Identifier (MapIdentifier, RClassIdentifier, TensorIdentifier)
 import TensorRight.Internal.DSL.Shape
   ( AbstractShape (AbstractShape),
-    RClassRef (ByRClass, ByLabel),
+    RClassRef (ByLabel, ByRClass),
     TensorShape (labelled, unlabelled),
     toAbstractShape,
   )
@@ -169,8 +174,15 @@ freshMapBase name mapBase =
   where
     new =
       HM.map
-        ( \(SymInteger (SymTerm _ (TypedSymbol s))) ->
-            SymInteger $ symTerm $ modifyIdentifier (`withInfo` name) s
+        ( \(SymInteger (SymTerm (TypedSymbol s :: TypedSymbol knd a))) ->
+            SymInteger $
+              SymTerm $
+                ( TypedSymbol $
+                    mapIdentifier
+                      (mapMetadata (\m -> List [Atom "fresh", Atom $ T.pack name, m]))
+                      s ::
+                    TypedSymbol knd a
+                )
         )
         mapBase
 
@@ -291,6 +303,24 @@ exprShape expr = do
 data SymIdentInfo = SymTensor TensorIdentifier | SymMap RClassIdentifier Int MapIdentifier
   deriving (Eq, Ord, Hashable, Generic, Lift, NFData)
 
+instance AsMetadata SymIdentInfo where
+  asMetadata (SymTensor ident) = List [Atom "SymTensor", asMetadata ident]
+  asMetadata (SymMap rclass int map) =
+    List
+      [ Atom "SymMap",
+        asMetadata rclass,
+        Atom $ T.pack $ show int,
+        asMetadata map
+      ]
+  fromMetadata (List [Atom "SymMap", rclass, Atom int, map]) = do
+    rclass' <- fromMetadata rclass
+    map' <- fromMetadata map
+    return $ SymMap rclass' (read $ T.unpack int) map'
+  fromMetadata (List [Atom "SymTensor", ident]) = do
+    ident' <- fromMetadata ident
+    return $ SymTensor ident'
+  fromMetadata _ = Nothing
+
 instance Show SymIdentInfo where
   show (SymTensor ident) = show ident
   show (SymMap rclass int map) = show rclass <> "." <> show int <> "." <> show map
@@ -300,7 +330,11 @@ eval' (Var _ ident) = do
   shape <- gets $ (HM.! ident) . allTensorShapes
   dtype <- gets $ (HM.! ident) . allTensorDTypes
   sizes <- tensorShapeToSizes shape
-  return $ createTensor (withInfo "tensor" $ SymTensor ident) sizes dtype
+  return $
+    createTensor
+      (withMetadata "tensor" $ SymTensor ident)
+      sizes
+      dtype
 eval' (NumBinOp _ op lhs rhs) = do
   l <- eval lhs
   r <- eval rhs

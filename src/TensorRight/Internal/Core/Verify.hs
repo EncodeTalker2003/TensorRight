@@ -40,6 +40,7 @@ import Grisette
     SymInteger,
     Union,
     align,
+    existsSet,
     group,
     identifier,
     nest,
@@ -49,7 +50,6 @@ import Grisette
     withTimeout,
     pattern Single,
   )
-import Grisette.Internal.SymPrim.Quantifier (existsSet)
 import Prettyprinter.Render.Text (putDoc)
 import TensorRight.Internal.Core.Axis
   ( AxisMapLike (asHashMap, fromHashMap),

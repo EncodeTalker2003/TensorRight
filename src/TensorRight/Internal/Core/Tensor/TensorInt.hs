@@ -7,8 +7,10 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -35,10 +37,8 @@ where
 
 import Data.Hashable (Hashable)
 import Data.String (IsString (fromString))
-import GHC.Generics (Generic)
 import Grisette
-  ( Default (Default),
-    DivOr (divOr, modOr, remOr),
+  ( DivOr (divOr, modOr, remOr),
     EvalSym,
     FdivOr (fdivOr),
     ITEOp (symIte),
@@ -53,7 +53,7 @@ import Grisette
     SymInteger,
     SymOrd ((.<), (.>)),
     Union,
-    derive,
+    deriveGADT,
     liftUnion,
     mrgFmap,
     mrgIf,
@@ -67,13 +67,13 @@ import TensorRight.Internal.Util.Error (ErrorEnv)
 
 data TensorNumBase a
   = NonInf a
-  | Inf SymBool -- ^ Positive or negative infinity
+  | -- | Positive or negative infinity
+    Inf SymBool
   | Unknown
 
-derive
-  ''TensorNumBase
-  [ ''Generic,
-    ''Show,
+deriveGADT
+  [''TensorNumBase]
+  [ ''Show,
     ''Mergeable,
     ''Eq,
     ''Hashable,
@@ -100,10 +100,9 @@ instance (SymEq a) => SymEq (TensorNumBase a) where
   Unknown .== Unknown = con False
   _ .== _ = con False
 
-derive
-  ''TensorNum
-  [ ''Generic,
-    ''Show,
+deriveGADT
+  [''TensorNum]
+  [ ''Show,
     ''SymEq,
     ''Eq,
     ''Hashable,
@@ -278,8 +277,10 @@ instance TensorExp SymAlgReal where
 class TensorDivMod a where
   -- | Divides one tensor numerical value by another.
   tensorDiv :: TensorNum a -> TensorNum a -> TensorNum a
+
   -- | Computes the quotient of one tensor numerical value by another.
   tensorMod :: TensorNum a -> TensorNum a -> TensorNum a
+
   -- | Computes the remainder of one tensor numerical value by another.
   tensorRem :: TensorNum a -> TensorNum a -> TensorNum a
 

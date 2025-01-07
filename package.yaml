@@ -9,7 +9,7 @@ license-file: LICENSE
 
 dependencies:
   - base >= 4.14 && < 5
-  - grisette >= 0.8 && < 0.9
+  - grisette >= 0.11 && < 0.12
   - unordered-containers
   - text
   - mtl
@@ -32,6 +32,8 @@ library:
     - -Wmissing-import-lists
     - -Wpartial-fields
     - -Wunused-type-patterns
+    - -Wno-x-partial
+    - -Wno-unrecognised-warning-flags
 
 _exe-ghc-options: &exe-ghc-options
   - -threaded

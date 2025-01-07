@@ -22,7 +22,11 @@ import Data.Hashable (Hashable)
 import Data.String (IsString (fromString))
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Grisette (PPrint (pformat))
+import Grisette
+  ( AsMetadata (asMetadata, fromMetadata),
+    PPrint (pformat),
+    SExpr (Atom, List),
+  )
 import Language.Haskell.TH.Syntax (Lift)
 
 data IdentifierKind = RClassKind | MapKind | TensorKind
@@ -32,6 +36,16 @@ data Identifier (kind :: IdentifierKind)
   | IndexedIdentifier T.Text Int
   deriving stock (Eq, Ord, Generic, Lift)
   deriving anyclass (Hashable, NFData)
+
+instance AsMetadata (Identifier kind) where
+  asMetadata (SimpleIdentifier name) = List [Atom "SimpleIdentifier", Atom name]
+  asMetadata (IndexedIdentifier name i) =
+    List [Atom "IndexedIdentifier", Atom name, Atom $ T.pack $ show i]
+  fromMetadata (List [Atom "SimpleIdentifier", Atom name]) =
+    Just $ SimpleIdentifier name
+  fromMetadata (List [Atom "IndexedIdentifier", Atom name, Atom i]) =
+    Just $ IndexedIdentifier name (read $ T.unpack i)
+  fromMetadata _ = Nothing
 
 instance IsString (Identifier kind) where
   fromString = SimpleIdentifier . T.pack

@@ -12,6 +12,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -72,7 +73,8 @@ import Data.Hashable (Hashable (hashWithSalt))
 import Data.Tuple (swap)
 import GHC.Generics (Generic)
 import Grisette
-  ( Apply (FunType, apply),
+  ( Apply (apply),
+    BasicSymPrim,
     EvalSym (evalSym),
     Identifier,
     LinkedRep,
@@ -87,6 +89,7 @@ import Grisette
     SymEq ((./=), (.==)),
     SymInteger,
     SymOrd ((.<), (.<=), (.>), (.>=)),
+    forallSym,
     mrgIf,
     mrgReturn,
     mrgTraverse_,
@@ -96,8 +99,6 @@ import Grisette
     symMax,
     type (=~>),
   )
-import Grisette.Internal.SymPrim.Prim.Term (SupportedNonFuncPrim)
-import Grisette.Internal.SymPrim.Quantifier (forallSym)
 import Grisette.Lib.Control.Monad.Except (mrgThrowError)
 import TensorRight.Internal.Core.Axis
   ( Axes,
@@ -132,6 +133,7 @@ import TensorRight.Internal.Core.Linearization (linearize)
 import TensorRight.Internal.Core.Tensor.TensorInt
   ( IsTensorNum,
     TensorDivMod (tensorDiv, tensorRem),
+    TensorExp (tensorExp),
     TensorNum,
     nonInf,
     tensorValEq,
@@ -141,7 +143,7 @@ import TensorRight.Internal.Core.Tensor.TensorInt
     tensorValLt,
     tensorValNe,
     tensorValSymMax,
-    tensorValSymMin, TensorExp (tensorExp),
+    tensorValSymMin,
   )
 import TensorRight.Internal.Util.Error (Error, ErrorEnv, assert)
 
@@ -278,7 +280,7 @@ instance CreateLinearFun SymBool where
     apply (ssym ident :: SymInteger =~> SymBool)
 
 instance
-  (LinkedRep ca a, FunType a ~ a, SupportedNonFuncPrim ca, Apply a, Mergeable a) =>
+  (LinkedRep ca a, BasicSymPrim a) =>
   CreateLinearFun (TensorNum a)
   where
   linearMemory ident =
@@ -1231,8 +1233,7 @@ reshapeDegenerate to introAxes removedAxes = do
           let originalIndices = removeAxes introAxes indices
           tensorAccess t $
             unionAxisMap
-              ( fromKVPairs ((,0) <$> HS.toList removedAxes)
-              )
+              (fromKVPairs ((,0) <$> HS.toList removedAxes))
               originalIndices
       )
       newShape
