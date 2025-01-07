@@ -1,4 +1,4 @@
-SHELL=/bin/bash
+SHELL=/usr/bin/env bash
 
 .PHONY: build verify maxMinToClampBefore maxMinToClampAfter generalize plot	clean
 
