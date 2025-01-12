@@ -1,0 +1,151 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "tensor-right:lib"
+
+    - path: "./rules/add/Main.hs"
+      component: "tensor-right:exe:rules-add"
+
+    - path: "./rules/add/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-add"
+
+    - path: "./rules/broadcast/Main.hs"
+      component: "tensor-right:exe:rules-broadcast"
+
+    - path: "./rules/broadcast/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-broadcast"
+
+    - path: "./rules/clamp/Main.hs"
+      component: "tensor-right:exe:rules-clamp"
+
+    - path: "./rules/clamp/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-clamp"
+
+    - path: "./rules/compare/Main.hs"
+      component: "tensor-right:exe:rules-compare"
+
+    - path: "./rules/compare/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-compare"
+
+    - path: "./rules/concat/Main.hs"
+      component: "tensor-right:exe:rules-concat"
+
+    - path: "./rules/concat/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-concat"
+
+    - path: "./rules/conv/Main.hs"
+      component: "tensor-right:exe:rules-conv"
+
+    - path: "./rules/conv/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-conv"
+
+    - path: "./rules/debug/Main.hs"
+      component: "tensor-right:exe:rules-debug"
+
+    - path: "./rules/debug/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-debug"
+
+    - path: "./rules/divmod/Main.hs"
+      component: "tensor-right:exe:rules-divmod"
+
+    - path: "./rules/divmod/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-divmod"
+
+    - path: "./rules/dot/Main.hs"
+      component: "tensor-right:exe:rules-dot"
+
+    - path: "./rules/dot/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-dot"
+
+    - path: "./rules/dyslice/Main.hs"
+      component: "tensor-right:exe:rules-dyslice"
+
+    - path: "./rules/dyslice/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-dyslice"
+
+    - path: "./rules/dyupslice/Main.hs"
+      component: "tensor-right:exe:rules-dyupslice"
+
+    - path: "./rules/dyupslice/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-dyupslice"
+
+    - path: "./rules/generalize/Main.hs"
+      component: "tensor-right:exe:rules-generalize"
+
+    - path: "./rules/generalize/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-generalize"
+
+    - path: "./rules/iota/Main.hs"
+      component: "tensor-right:exe:rules-iota"
+
+    - path: "./rules/iota/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-iota"
+
+    - path: "./rules/logical/Main.hs"
+      component: "tensor-right:exe:rules-logical"
+
+    - path: "./rules/logical/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-logical"
+
+    - path: "./rules/max/Main.hs"
+      component: "tensor-right:exe:rules-max"
+
+    - path: "./rules/max/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-max"
+
+    - path: "./rules/mul/Main.hs"
+      component: "tensor-right:exe:rules-mul"
+
+    - path: "./rules/mul/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-mul"
+
+    - path: "./rules/not/Main.hs"
+      component: "tensor-right:exe:rules-not"
+
+    - path: "./rules/not/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-not"
+
+    - path: "./rules/pad/Main.hs"
+      component: "tensor-right:exe:rules-pad"
+
+    - path: "./rules/pad/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-pad"
+
+    - path: "./rules/reduce/Main.hs"
+      component: "tensor-right:exe:rules-reduce"
+
+    - path: "./rules/reduce/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-reduce"
+
+    - path: "./rules/relabel/Main.hs"
+      component: "tensor-right:exe:rules-relabel"
+
+    - path: "./rules/relabel/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-relabel"
+
+    - path: "./rules/reverse/Main.hs"
+      component: "tensor-right:exe:rules-reverse"
+
+    - path: "./rules/reverse/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-reverse"
+
+    - path: "./rules/select/Main.hs"
+      component: "tensor-right:exe:rules-select"
+
+    - path: "./rules/select/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-select"
+
+    - path: "./rules/slice/Main.hs"
+      component: "tensor-right:exe:rules-slice"
+
+    - path: "./rules/slice/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-slice"
+
+    - path: "./rules/sub/Main.hs"
+      component: "tensor-right:exe:rules-sub"
+
+    - path: "./rules/sub/Paths_tensor_right.hs"
+      component: "tensor-right:exe:rules-sub"
+
+    - path: "./test"
+      component: "tensor-right:test:spec"
