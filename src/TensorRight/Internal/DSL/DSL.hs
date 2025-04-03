@@ -108,7 +108,7 @@ import TensorRight.Internal.Core.Tensor
     ToDType (toDType),
     ToElem (toElem),
   )
-import TensorRight.Internal.Core.Tensor.TensorInt (TensorInt, TensorNum, TensorReal, IsTensorNum)
+import TensorRight.Internal.Core.Tensor.TensorInt (IsTensorNum, TensorInt, TensorNum, TensorReal)
 import TensorRight.Internal.Core.Tensor.Typed (BoolUnaryOp, CompareOp, NumUnaryOp)
 import qualified TensorRight.Internal.Core.Tensor.Typed as Typed
 import TensorRight.Internal.DSL.Condition (Condition (Condition), zipCondition)
@@ -184,16 +184,16 @@ import TensorRight.Internal.DSL.Expr
     validTensorShape,
   )
 import TensorRight.Internal.DSL.Identifier
-  ( RClassIdentifier,
-    Identifier (SimpleIdentifier),
+  ( Identifier (SimpleIdentifier),
     MapIdentifier,
+    RClassIdentifier,
     nextIdentifier,
   )
 import TensorRight.Internal.DSL.Parameters (IsParamMaps (toParamMaps), ParamDesc)
 import TensorRight.Internal.DSL.RelabelMap (IsRelabelMap (toRelabelMap), RelabelMapDesc)
 import TensorRight.Internal.DSL.Shape
   ( AbstractShape (AbstractShape, labelled, unlabelled),
-    RClassRef (ByRClass, ByLabel),
+    RClassRef (ByLabel, ByRClass),
     TensorShapeDesc,
     TensorShapeLike (toTensorShape),
     abstractShapeAllRefs,

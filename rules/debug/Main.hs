@@ -57,7 +57,7 @@ rulePadTwice _ = do
     "when i0 == 0, pad(pad(x, l0, i0, h0), l1, i1, h1) --> pad(x, l0+l1, i0+i1, h0+h1)"
     lhs
     rhs
-  
+
 rulePadLowCombine :: forall a. AnyDTypeRule a
 rulePadLowCombine _ = do
   rclass <- newRClass "rclass"
@@ -81,7 +81,8 @@ rulePadLowCombine _ = do
   lhs <-
     padLow
       (padLow x ("a" :: a) [rclass --> innerLow])
-        ("a" :: a) [rclass --> outerLow]
+      ("a" :: a)
+      [rclass --> outerLow]
 
   rhs <-
     padLow x ("a" :: a) [rclass --> rhsLow]

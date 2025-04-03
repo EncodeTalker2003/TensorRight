@@ -673,7 +673,7 @@ tensorTest =
                     fromKVPairs [(Axis "a", 0), (Axis "b", 1), (Axis "c", 2)],
                 expected = Just (TensorElemVal "m")
               },
-            toTensorTest "access elem" $
+          toTensorTest "access elem" $
             TensorTest
               { tensor = padded,
                 shape = Just paddedShape,
@@ -1208,9 +1208,9 @@ tensorTest =
                         )
                       table =
                         [ entry f s0 s1
-                          | f <- [0 .. 3],
-                            s0 <- [0 .. 1],
-                            s1 <- [0 .. 3]
+                        | f <- [0 .. 3],
+                          s0 <- [0 .. 1],
+                          s1 <- [0 .. 3]
                         ]
                       res =
                         foldr

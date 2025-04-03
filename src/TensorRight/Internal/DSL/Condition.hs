@@ -107,14 +107,14 @@ unaryCond f a = foldr (.&&) (con True) (HM.map f a)
 -- For instance, @'elemWiseArith' (+) a b@, returns a map @r@ such that for
 -- every key @k@, @r[k] = a[k] + b[k]@. This also means that 'elemWiseArith'
 -- can only be used on maps having the same domain, i.e., the same @RClass@.
--- 
+--
 -- For @f@, users can use any binary operator, as long as it satisifies the
 -- signature. This is useful if you have a condition involving more than two
 -- maps. For instance, this checks if @m1 == m2 + m3@
 --
 -- @
 -- 'TensorRight.precondition'' [m1, m2, m3] $
---   \[m1, m2, m3] -> 'elemWiseCond' (.==) m1 ('elemWiseArith' (+) m2 m3) 
+--   \[m1, m2, m3] -> 'elemWiseCond' (.==) m1 ('elemWiseArith' (+) m2 m3)
 -- @
 elemWiseArith ::
   (SymInteger -> SymInteger -> SymInteger) ->
@@ -127,7 +127,7 @@ elemWiseArith = HM.intersectionWith
 --
 -- For instance, @'unaryArith' (+2) a@, return a map @r@ such that for
 -- every key @k@, @r[k] = a[k] + 2@.
--- 
+--
 -- For @f@, users can use any unary operator, as long as it satisifies the
 -- signature. For instance, this checks if @m1 == m2 + 2@
 --

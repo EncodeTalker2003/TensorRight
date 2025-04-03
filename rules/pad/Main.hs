@@ -40,19 +40,23 @@ rule03 _ = do
 
   tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0]
 
-  lhs <- pad (broadcast tensor [rclass1 --> sizeMap1, rclass2 --> sizeMap2]) ("a" :: a) $
-    Padding
-      { low = [rclass0 --> lowMap0, rclass1 --> lowMap1, rclass2 --> lowMap2],
-        interior = [rclass0 --> intMap0, rclass1 --> intMap1, rclass2 --> intMap2],
-        high = [rclass0 --> highMap0, rclass1 --> highMap1, rclass2 --> highMap2]
-      }
-  rhs <- broadcast (
-          pad (broadcast tensor [rclass1 --> sizeMap1]) ("a" :: a) $
-            Padding
-              { low = [rclass0 --> lowMap0, rclass1 --> lowMap1],
-                interior = [rclass0 --> intMap0, rclass1 --> intMap1],
-                high = [rclass0 --> highMap0, rclass1 --> highMap1]
-              }) [rclass2 --> sizeMap2]
+  lhs <-
+    pad (broadcast tensor [rclass1 --> sizeMap1, rclass2 --> sizeMap2]) ("a" :: a) $
+      Padding
+        { low = [rclass0 --> lowMap0, rclass1 --> lowMap1, rclass2 --> lowMap2],
+          interior = [rclass0 --> intMap0, rclass1 --> intMap1, rclass2 --> intMap2],
+          high = [rclass0 --> highMap0, rclass1 --> highMap1, rclass2 --> highMap2]
+        }
+  rhs <-
+    broadcast
+      ( pad (broadcast tensor [rclass1 --> sizeMap1]) ("a" :: a) $
+          Padding
+            { low = [rclass0 --> lowMap0, rclass1 --> lowMap1],
+              interior = [rclass0 --> intMap0, rclass1 --> intMap1],
+              high = [rclass0 --> highMap0, rclass1 --> highMap1]
+            }
+      )
+      [rclass2 --> sizeMap2]
 
   precondition [lowMap2] $ \[low2] -> low2 .== 0
   precondition [highMap2] $ \[high2] -> high2 .== 0
@@ -73,25 +77,28 @@ rule04 _ = do
 
   tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0, rclass1 --> sizeMap1]
 
-  lhs <- pad tensor ("a" :: a) $
-    Padding
-      { low = [rclass0 --> lowMap0, rclass1 --> lowMap1],
-        interior = [rclass0 --> intMap0, rclass1 --> intMap1],
-        high = [rclass0 --> highMap0, rclass1 --> highMap1]
-      }
-  rhs <- slice (
-          pad tensor ("a" :: a) $
-            Padding
-              { low = [rclass0 --> lowMapRhs, rclass1 --> lowMap1],
-                interior = [rclass0 --> intMap0, rclass1 --> intMap1],
-                high = [rclass0 --> highMapRhs, rclass1 --> highMap1]
-              }
-          ) $ Slice
-                { start = [rclass0 --> startMap0, rclass1 --> startMap1],
-                  end = [rclass0 --> endMap0, rclass1 --> endMap1],
-                  strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
-                }
-  
+  lhs <-
+    pad tensor ("a" :: a) $
+      Padding
+        { low = [rclass0 --> lowMap0, rclass1 --> lowMap1],
+          interior = [rclass0 --> intMap0, rclass1 --> intMap1],
+          high = [rclass0 --> highMap0, rclass1 --> highMap1]
+        }
+  rhs <-
+    slice
+      ( pad tensor ("a" :: a) $
+          Padding
+            { low = [rclass0 --> lowMapRhs, rclass1 --> lowMap1],
+              interior = [rclass0 --> intMap0, rclass1 --> intMap1],
+              high = [rclass0 --> highMapRhs, rclass1 --> highMap1]
+            }
+      )
+      $ Slice
+        { start = [rclass0 --> startMap0, rclass1 --> startMap1],
+          end = [rclass0 --> endMap0, rclass1 --> endMap1],
+          strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
+        }
+
   precondition [lowMap0] $ \[low0] -> low0 .< 0
   precondition [highMap0] $ \[high0] -> high0 .< 0
   precondition [lowMap1] $ \[low1] -> low1 .> 0

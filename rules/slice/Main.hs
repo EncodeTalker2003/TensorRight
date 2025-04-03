@@ -47,28 +47,29 @@ rule03 _ = do
   precondition [newSizeMap1, startMap1, endMap1, strideMap1] $
     \[newSize1, start1, end1, stride1] -> newSize1 .== divOr 0 (end1 - start1 + stride1 - 1) stride1
   rewrite "Slice(Broadcast(A)) ⇒ Broadcast(Slice(A))" lhs rhs
-  
+
 rule04 :: forall a. AnyDTypeRule a
 rule04 _ = do
   rclass <- newRClass "rclass"
-  [sizeMap, endMap, strideMap]
-    <- newMaps ["sizeMap", "endMap", "strideMap"] rclass
+  [sizeMap, endMap, strideMap] <-
+    newMaps ["sizeMap", "endMap", "strideMap"] rclass
   [startMap, lowMap, highMap, intMap] <- newNonNegMaps ["startMap", "lowMap", "highMap", "intMap"] rclass
   tensor <- newTensor @a "tensor" [rclass --> sizeMap]
 
-  lhs <- slice
-    (
-      pad tensor ("a" :: a) $
-      Padding
-        { low = [rclass --> lowMap],
-          interior = [rclass --> intMap],
-          high = [rclass --> highMap]
+  lhs <-
+    slice
+      ( pad tensor ("a" :: a) $
+          Padding
+            { low = [rclass --> lowMap],
+              interior = [rclass --> intMap],
+              high = [rclass --> highMap]
+            }
+      )
+      $ Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
         }
-    ) $ Slice 
-          { start = [rclass --> startMap],
-            end = [rclass --> endMap],
-            strides = [rclass --> strideMap]
-          }
   let rhs = tensor
   precondition [startMap, lowMap] $ \[start, low] -> start .== low
   precondition [strideMap, intMap] $ \[stride, int] -> stride .== int + 1
@@ -82,24 +83,25 @@ rule04 _ = do
 rule05 :: forall a. AnyDTypeRule a
 rule05 _ = do
   rclass <- newRClass "rclass"
-  [sizeMap, endMap, strideMap, lowMap, highMap, broadcastMap]
-    <- newMaps ["sizeMap", "endMap", "strideMap", "lowMap", "highMap", "broadcastMap"] rclass
+  [sizeMap, endMap, strideMap, lowMap, highMap, broadcastMap] <-
+    newMaps ["sizeMap", "endMap", "strideMap", "lowMap", "highMap", "broadcastMap"] rclass
   [startMap, intMap] <- newNonNegMaps ["startMap", "intMap"] rclass
   tensor <- newTensor @a "tensor" [rclass --> sizeMap]
 
-  lhs <- slice
-    (
-      pad tensor ("a" :: a) $
-      Padding
-        { low = [rclass --> lowMap],
-          interior = [rclass --> intMap],
-          high = [rclass --> highMap]
+  lhs <-
+    slice
+      ( pad tensor ("a" :: a) $
+          Padding
+            { low = [rclass --> lowMap],
+              interior = [rclass --> intMap],
+              high = [rclass --> highMap]
+            }
+      )
+      $ Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
         }
-    ) $ Slice 
-          { start = [rclass --> startMap],
-            end = [rclass --> endMap],
-            strides = [rclass --> strideMap]
-          }
   rhs <- constant @a "a" [rclass --> broadcastMap]
   precondition [broadcastMap, startMap, endMap, strideMap] $
     \[broadcastSize, start, end, stride] -> broadcastSize .== divOr 0 (end - start + stride - 1) stride
@@ -111,33 +113,36 @@ rule06 :: forall a. AnyDTypeRule a
 rule06 _ = do
   rclass <- newRClass "rclass"
   sizeMap <- newMap "sizeMap" rclass
-  [startMap, endMap, lowMap, highMap]
-    <- newNonNegMaps ["startMap", "endMap", "lowMap", "highMap"] rclass
+  [startMap, endMap, lowMap, highMap] <-
+    newNonNegMaps ["startMap", "endMap", "lowMap", "highMap"] rclass
   strideMap <- newConstMap "strideMap" 1 rclass
   intMap <- newConstMap "intMap" 0 rclass
   newStartMap <- combineMap "newStartMap" (\[a, b] -> a - b) [startMap, lowMap]
   newEndMap <- combineMap "newEndMap" (\[a, b] -> a - b) [endMap, lowMap]
   tensor <- newTensor @a "tensor" [rclass --> sizeMap]
 
-  lhs <- slice
-    (
-      pad tensor ("a" :: a) $
-      Padding
-        { low = [rclass --> lowMap],
-          interior = [rclass --> intMap],
-          high = [rclass --> highMap]
+  lhs <-
+    slice
+      ( pad tensor ("a" :: a) $
+          Padding
+            { low = [rclass --> lowMap],
+              interior = [rclass --> intMap],
+              high = [rclass --> highMap]
+            }
+      )
+      $ Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
         }
-    ) $ Slice 
-          { start = [rclass --> startMap],
-            end = [rclass --> endMap],
-            strides = [rclass --> strideMap]
-          }
-  
-  rhs <- slice tensor $ Slice 
-          { start = [rclass --> newStartMap],
-            end = [rclass --> newEndMap],
-            strides = [rclass --> strideMap]
-          }
+
+  rhs <-
+    slice tensor $
+      Slice
+        { start = [rclass --> newStartMap],
+          end = [rclass --> newEndMap],
+          strides = [rclass --> strideMap]
+        }
   precondition [startMap, lowMap] $ \[start, low] -> start .>= low
   precondition [sizeMap, endMap, lowMap, intMap] $
     \[size, end, low, int] -> end .<= size + low + (size - 1) * int
@@ -159,27 +164,28 @@ rule07 _ = do
 
   tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0, rclass1 --> sizeMap1]
 
-  lhs <- slice
-    (
-      slice tensor $
-        Slice
-          { start = [rclass0 --> startMap0, rclass1 --> startMap1],
-            end = [rclass0 --> endMap0, rclass1 --> endMap1],
-            strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
-          }
-    ) $ Slice
-          {
-            start = [rclass0 --> innerStart0, rclass1 --> innerStart1],
-            end = [rclass0 --> innerEnd0, rclass1 --> innerEnd1],
-            strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
-          }
-  rhs <- slice tensor $ Slice
-          {
-            start = [rclass0 --> rhsStart0, rclass1 --> rhsStart1],
-            end = [rclass0 --> rhsEnd0, rclass1 --> rhsEnd1],
-            strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
-          }
-  
+  lhs <-
+    slice
+      ( slice tensor $
+          Slice
+            { start = [rclass0 --> startMap0, rclass1 --> startMap1],
+              end = [rclass0 --> endMap0, rclass1 --> endMap1],
+              strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
+            }
+      )
+      $ Slice
+        { start = [rclass0 --> innerStart0, rclass1 --> innerStart1],
+          end = [rclass0 --> innerEnd0, rclass1 --> innerEnd1],
+          strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
+        }
+  rhs <-
+    slice tensor $
+      Slice
+        { start = [rclass0 --> rhsStart0, rclass1 --> rhsStart1],
+          end = [rclass0 --> rhsEnd0, rclass1 --> rhsEnd1],
+          strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
+        }
+
   rewrite "Slice(Slice(A)) ⇒ Slice(A)" lhs rhs
 
 rule08 :: forall a. AnyDTypeRule a
@@ -192,13 +198,13 @@ rule08 _ = do
   tensorA <- newTensor @a "tensorA" [rclass0 --> sizeMapA0, rclass1 --> sizeMapA1]
   tensorB <- newTensor @a "tensorB" [rclass0 --> sizeMapB0, rclass1 --> sizeMapB1]
 
-  lhs <- slice (concatTensor tensorA tensorB (ByRClass rclass0)) $
-          Slice
-            {
-              start = [rclass0 --> startMap0, rclass1 --> startMap1],
-              end = [rclass0 --> endMap0, rclass1 --> endMap1],
-              strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
-            }
+  lhs <-
+    slice (concatTensor tensorA tensorB (ByRClass rclass0)) $
+      Slice
+        { start = [rclass0 --> startMap0, rclass1 --> startMap1],
+          end = [rclass0 --> endMap0, rclass1 --> endMap1],
+          strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
+        }
   let rhs = tensorB
 
   precondition [startMap1] $ \[start1] -> start1 .== 0
@@ -214,19 +220,19 @@ rule08 _ = do
 rule09 :: forall a. AnyDTypeRule a
 rule09 _ = do
   [rclass0, rclass1] <- newRClasses ["rclass0", "rclass1"]
-  [sizeMap0, startMap0, endMap0, strideMap0]
-    <- newMaps ["sizeMap0", "startMap0", "endMap0", "strideMap0"] rclass0
-  [sizeMap1, startMap1, endMap1, strideMap1, broadcastSize1]
-    <- newMaps ["sizeMap1", "startMap1", "endMap1", "strideMap1", "broadcastSize1"] rclass1
+  [sizeMap0, startMap0, endMap0, strideMap0] <-
+    newMaps ["sizeMap0", "startMap0", "endMap0", "strideMap0"] rclass0
+  [sizeMap1, startMap1, endMap1, strideMap1, broadcastSize1] <-
+    newMaps ["sizeMap1", "startMap1", "endMap1", "strideMap1", "broadcastSize1"] rclass1
   tensor <- newTensor @a "tensor" [rclass0 --> sizeMap0]
 
-  lhs <- slice (broadcast tensor [rclass1 --> sizeMap1]) $
-          Slice
-            {
-              start = [rclass0 --> startMap0, rclass1 --> startMap1],
-              end = [rclass0 --> endMap0, rclass1 --> endMap1],
-              strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
-            }
+  lhs <-
+    slice (broadcast tensor [rclass1 --> sizeMap1]) $
+      Slice
+        { start = [rclass0 --> startMap0, rclass1 --> startMap1],
+          end = [rclass0 --> endMap0, rclass1 --> endMap1],
+          strides = [rclass0 --> strideMap0, rclass1 --> strideMap1]
+        }
   rhs <- broadcast tensor [rclass1 --> broadcastSize1]
 
   precondition [broadcastSize1] $ \[s] -> s .> 0
@@ -236,9 +242,11 @@ rule09 _ = do
   precondition [strideMap0] $ \[p] -> p .== 1
   precondition [broadcastSize1, startMap1, endMap1, strideMap1] $
     \[b, s, e, p] ->
-        symIte (modOr 0 (e - s) p .== 0)
-               (divOr 0 (e - s) p)
-               (divOr 0 (e - s) p + 1) .== b 
+      symIte
+        (modOr 0 (e - s) p .== 0)
+        (divOr 0 (e - s) p)
+        (divOr 0 (e - s) p + 1)
+        .== b
 
   rewrite "Slice(Broadcast(A)) ⇒ Broadcast(A)" lhs rhs
 
@@ -251,21 +259,21 @@ rule10 _ = do
   tensorA <- newTensor @a "tensorA" [rclass --> sizeMapA]
   tensorB <- newTensor @a "tensorB" [rclass --> sizeMapB]
 
-  lhs <- slice (concatTensor tensorA tensorB (ByRClass rclass)) $
-          Slice
-            {
-              start = [rclass --> startMap],
-              end = [rclass --> endMap],
-              strides = [rclass --> strideMap]
-            }
-  rhs <- slice tensorA $
-          Slice
-            {
-              start = [rclass --> startMap],
-              end = [rclass --> endMap],
-              strides = [rclass --> strideMap]
-            }
-  
+  lhs <-
+    slice (concatTensor tensorA tensorB (ByRClass rclass)) $
+      Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
+        }
+  rhs <-
+    slice tensorA $
+      Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
+        }
+
   precondition [sizeMapA, endMap] $
     \[sizeA, end] -> end .<= sizeA
 
@@ -282,21 +290,21 @@ rule11 _ = do
   tensorA <- newTensor @a "tensorA" [rclass --> sizeMapA]
   tensorB <- newTensor @a "tensorB" [rclass --> sizeMapB]
 
-  lhs <- slice (concatTensor tensorA tensorB (ByRClass rclass)) $
-          Slice
-            {
-              start = [rclass --> startMap],
-              end = [rclass --> endMap],
-              strides = [rclass --> strideMap]
-            }
-  rhs <- slice tensorB $
-          Slice
-            {
-              start = [rclass --> startMapB],
-              end = [rclass --> endMapB],
-              strides = [rclass --> strideMap]
-            }
-  
+  lhs <-
+    slice (concatTensor tensorA tensorB (ByRClass rclass)) $
+      Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
+        }
+  rhs <-
+    slice tensorB $
+      Slice
+        { start = [rclass --> startMapB],
+          end = [rclass --> endMapB],
+          strides = [rclass --> strideMap]
+        }
+
   precondition [sizeMapA, startMap] $
     \[sizeA, start] -> start .> sizeA
 
@@ -305,8 +313,8 @@ rule11 _ = do
 rule12 :: forall a. AnyDTypeRule a
 rule12 _ = do
   rclass <- newRClass "rclass"
-  [sizeMapA, sizeMapB, sizeMapC, startMap, endMap, strideMap]
-    <- newMaps ["sizeMapA", "sizeMapB", "sizeMapC", "startMap", "endMap", "strideMap"] rclass
+  [sizeMapA, sizeMapB, sizeMapC, startMap, endMap, strideMap] <-
+    newMaps ["sizeMapA", "sizeMapB", "sizeMapC", "startMap", "endMap", "strideMap"] rclass
   startMapB <- combineMap "startMapB" (\[a, b] -> a - b) [startMap, sizeMapA]
   endMapB <- combineMap "endMapB" (\[a, b] -> a - b) [endMap, sizeMapA]
 
@@ -314,21 +322,21 @@ rule12 _ = do
   tensorB <- newTensor @a "tensorB" [rclass --> sizeMapB]
   tensorC <- newTensor @a "tensorC" [rclass --> sizeMapC]
 
-  lhs <- slice (concatTensorList [tensorA, tensorB, tensorC] (ByRClass rclass)) $
-          Slice
-            {
-              start = [rclass --> startMap],
-              end = [rclass --> endMap],
-              strides = [rclass --> strideMap]
-            }
-  rhs <- slice (concatTensor tensorB tensorC (ByRClass rclass)) $
-          Slice
-            {
-              start = [rclass --> startMapB],
-              end = [rclass --> endMapB],
-              strides = [rclass --> strideMap]
-            }
-  
+  lhs <-
+    slice (concatTensorList [tensorA, tensorB, tensorC] (ByRClass rclass)) $
+      Slice
+        { start = [rclass --> startMap],
+          end = [rclass --> endMap],
+          strides = [rclass --> strideMap]
+        }
+  rhs <-
+    slice (concatTensor tensorB tensorC (ByRClass rclass)) $
+      Slice
+        { start = [rclass --> startMapB],
+          end = [rclass --> endMapB],
+          strides = [rclass --> strideMap]
+        }
+
   precondition [sizeMapA, startMap] $ \[sizeA, start] -> sizeA .<= start
 
   rewrite "Slice(Concat(A,B,C)) ⇒ Slice(Concat(B,C))" lhs rhs
@@ -336,36 +344,41 @@ rule12 _ = do
 rule13 :: forall a. AnyDTypeRule a
 rule13 _ = do
   rclass <- newRClass "rclass"
-  [sizeMap, startMapLhs, endMapLhs, strideMap, startMapRhs, endMapRhs]
-    <- newMaps ["sizeMap", "startMapLhs", "endMapLhs", "strideMap", "startMapRhs", "endMapRhs"] rclass
+  [sizeMap, startMapLhs, endMapLhs, strideMap, startMapRhs, endMapRhs] <-
+    newMaps ["sizeMap", "startMapLhs", "endMapLhs", "strideMap", "startMapRhs", "endMapRhs"] rclass
   tensor <- newTensor @a "tensor" [rclass --> sizeMap]
 
-  lhs <- slice (reverseTensor tensor [ByRClass rclass]) $
+  lhs <-
+    slice (reverseTensor tensor [ByRClass rclass]) $
+      Slice
+        { start = [rclass --> startMapLhs],
+          end = [rclass --> endMapLhs],
+          strides = [rclass --> strideMap]
+        }
+  rhs <-
+    reverseTensor
+      ( slice tensor $
           Slice
-            {
-              start = [rclass --> startMapLhs],
-              end = [rclass --> endMapLhs],
-              strides = [rclass --> strideMap]
-            }
-  rhs <- reverseTensor (slice tensor $
-          Slice
-            {
-              start = [rclass --> startMapRhs],
+            { start = [rclass --> startMapRhs],
               end = [rclass --> endMapRhs],
               strides = [rclass --> strideMap]
-            }) [ByRClass rclass]
-  
+            }
+      )
+      [ByRClass rclass]
+
   let find_nth start end = divOr 0 (end - start)
   let count start end stride =
-        symIte (modOr 0 (end - start) stride .== 0)
-               (find_nth start end stride - 1)
-               (find_nth start end stride)
+        symIte
+          (modOr 0 (end - start) stride .== 0)
+          (find_nth start end stride - 1)
+          (find_nth start end stride)
   let new_start size start end stride = start + stride * count start end stride + 1 - size
-  let new_end size start end stride = 
-        symIte (size .>= new_start size start end stride + end - start)
-               (new_start size start end stride + end - start)
-               size
-                            
+  let new_end size start end stride =
+        symIte
+          (size .>= new_start size start end stride + end - start)
+          (new_start size start end stride + end - start)
+          size
+
   precondition [sizeMap, startMapLhs, endMapLhs, strideMap, startMapRhs] $
     \[size, startLhs, endLhs, stride, startRhs] -> startRhs .== new_start size startLhs endLhs stride
   precondition [sizeMap, startMapLhs, endMapLhs, strideMap, endMapRhs] $

@@ -34,7 +34,7 @@ import Data.List (sortBy)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Grisette (Default (Default), PPrint (pformat, pformatPrec), TryMerge)
-import TensorRight.Internal.DSL.Identifier (RClassIdentifier, Label, MapIdentifier)
+import TensorRight.Internal.DSL.Identifier (Label, MapIdentifier, RClassIdentifier)
 import TensorRight.Internal.DSL.Syntax (ArrowSyntax ((-->)), AtSyntax ((@@)))
 import TensorRight.Internal.Util.Error (Error, assert)
 import TensorRight.Internal.Util.Pretty (encloseList, prettyWithConstructor)
@@ -58,7 +58,7 @@ type RClassRefSet = HS.HashSet RClassRef
 
 -- | A Tensor Shape is a mapping from aggregated-axes to aggregated-maps, which contain axes sizes.
 -- Each mapping in a tensor shape can be labelled or unlabelled.
--- 
+--
 -- - A labelled mapping contains the name for an aggregated-axis ('Label'),
 -- an 'RClassIdentifier', and a 'MapIdentifier'.
 -- - An unlabelled mapping contains only an 'RClassIdentifier' (which acts as the aggregated-axis name) and a 'MapIdentifier'.
@@ -84,10 +84,10 @@ instance PPrint TensorShape where
       "TensorShape"
       [ encloseList "{" "}" "," $
           [ prettyLabelled label rclass map
-            | (label, (rclass, map)) <- HM.toList labelled
+          | (label, (rclass, map)) <- HM.toList labelled
           ]
             ++ [ prettyUnlabelled rclass map
-                 | (rclass, map) <- HM.toList unlabelled
+               | (rclass, map) <- HM.toList unlabelled
                ]
       ]
     where
@@ -100,7 +100,7 @@ data PartialTensorShapeDesc
 
 -- | A 'TensorShapeDesc' describes a mapping in a tensor shape.
 -- It has two constructors:
--- 
+--
 -- - 'UnlabelledDesc': @'RClassIdentifier' 'TensorRight.Internal.DSL.Syntax.-->' 'MapIdentifier'@ can be used to create an unlabelled mapping.
 -- - 'LabelledDesc': @'RClassIdentifier' 'TensorRight.Internal.DSL.Syntax.-->' 'MapIdentifier' 'TensorRight.Internal.DSL.Syntax.@@' 'Label'@ can be used to create a labelled mapping.
 data TensorShapeDesc

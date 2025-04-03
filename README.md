@@ -231,6 +231,11 @@ This will build the documentation in a folder like:
 You can navigate to have a look at the full API documentation. If you are using
 vscode, the live server plugin might be helpful for hosting the documentation.
 
+### Code Formatting
+
+We use [ormolu](https://hackage.haskell.org/package/ormolu) for formatting
+Haskell source code.
+
 ## License
 TensorRight is distributed under the terms of the Apache-2.0 license.
 The [LICENSE](./LICENSE) file contains the full license text.

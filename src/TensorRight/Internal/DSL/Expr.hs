@@ -63,8 +63,9 @@ import TensorRight.Internal.Core.Tensor
   ( BoolBinOp (And, Or),
     DType (IntType),
     Elem,
-    NumBinOp (Add, Max, Min, Mul, Sub, Div, Rem),
+    NumBinOp (Add, Div, Max, Min, Mul, Rem, Sub),
   )
+import TensorRight.Internal.Core.Tensor.TensorInt (IsTensorNum, TensorNum)
 import TensorRight.Internal.Core.Tensor.Typed
   ( BoolUnaryOp,
     CompareOp (Eqv, Ge, Gt, Le, Lt, Ne),
@@ -72,8 +73,8 @@ import TensorRight.Internal.Core.Tensor.Typed
   )
 import TensorRight.Internal.DSL.Condition (Condition)
 import TensorRight.Internal.DSL.Identifier
-  ( RClassIdentifier,
-    MapIdentifier,
+  ( MapIdentifier,
+    RClassIdentifier,
     TensorIdentifier,
   )
 import TensorRight.Internal.DSL.Shape
@@ -84,7 +85,6 @@ import TensorRight.Internal.DSL.Shape
   )
 import TensorRight.Internal.Util.Error (Error)
 import TensorRight.Internal.Util.Pretty (gprettyParen, prettyWithConstructor)
-import TensorRight.Internal.Core.Tensor.TensorInt (IsTensorNum, TensorNum)
 
 -- | Internal representation of operator parameters/attributes.
 type Params = HM.HashMap RClassRef MapIdentifier

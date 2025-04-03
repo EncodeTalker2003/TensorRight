@@ -3,7 +3,9 @@
 
 module TensorRight
   ( -- * TensorRight DSL
+
     --
+
     -- | We introduce a domain-specific language (DSL) for specifying tensor
     -- graph rewrites. The DSL contains constructs to define complex tensor
     -- expressions, specify preconditions, define rewrite rules, and verify
@@ -39,7 +41,7 @@ module TensorRight
     -- want to represent the sizes of named-axes in an @RClass@, we can use a
     -- map from those named-axes to their respective sizes.
     -- The domain of the map is the same as the named-axes in the @RClass@.
-    -- Since @RClasses@ are symbolic in our DSL and are represented by 
+    -- Since @RClasses@ are symbolic in our DSL and are represented by
     -- identifiers, these maps would also be symbolic and can be represented by identifiers.
     -- The maps can be instantiated to any number of named-axes in the @RClass@.
     --
@@ -51,10 +53,10 @@ module TensorRight
     -- [map1, map2] <- 'newMaps' ["map1, map2"] rclass
     -- @
 
-    -- | 'newMap' takes a Map name and an @RClass@ identifier and returns a 
-    -- @Map@ identifier, while 'newMaps' takes a list of names and returns a 
-    -- list of @Map@ identifiers on the given @RClass@. A @Map@ identifier 
-    -- represents a symbolic map, whose domain is the same as the named-axes in 
+    -- | 'newMap' takes a Map name and an @RClass@ identifier and returns a
+    -- @Map@ identifier, while 'newMaps' takes a list of names and returns a
+    -- list of @Map@ identifiers on the given @RClass@. A @Map@ identifier
+    -- represents a symbolic map, whose domain is the same as the named-axes in
     -- an @RClass@.
     -- So, we can say in this example, that @dom(map) = rclass@.
     --
@@ -65,8 +67,8 @@ module TensorRight
 
     -- | Sometimes, we want to create a map with some constraints, like all the
     -- values in the map should be non-negative, or all the values should be
-    -- constant. This can be achieved with preconditions (see below), but these 
-    -- requirements are very common and using preconditions can be verbose. So, 
+    -- constant. This can be achieved with preconditions (see below), but these
+    -- requirements are very common and using preconditions can be verbose. So,
     -- we provide some syntax sugars for creating such maps:
 
     -- | @
@@ -160,7 +162,7 @@ module TensorRight
     -- out <- 'reduce' tensor [(ByLabel "label1") --\> ...]
     -- @
 
-    -- | Now, this expression is unambiguous and we can specify the @RClass@ to 
+    -- | Now, this expression is unambiguous and we can specify the @RClass@ to
     -- reduce on by using an 'RClassRef' with the label @label1@.
     --
     -- Note that in a tensor's shapes, if an @RClass@ identifier appears multiple
@@ -203,7 +205,7 @@ module TensorRight
     -- let tensorShapeValid'' =
     --       [
     --         rclass0 '-->' size0,
-    --         rclass1 '-->' size1 
+    --         rclass1 '-->' size1
     --       ]
     -- @
 
@@ -262,8 +264,8 @@ module TensorRight
     --   It contains all the maps over which the precondition is
     --   defined
     -- * @f :: ['Grisette.SymInteger'] -> 'Grisette.SymBool'@ is a function, that takes a list of
-    --   symbolic integers, and returns a symbolic boolean. The condition will 
-    --   be applied to each group of the elements with the same axes and 
+    --   symbolic integers, and returns a symbolic boolean. The condition will
+    --   be applied to each group of the elements with the same axes and
     --   combined with a logical AND to get the final symbolic boolean.
     --
     -- For example, we can write a precondition expressing that a maps needs to
@@ -284,7 +286,7 @@ module TensorRight
 
     -- | The precondition first takes a list, containing only the @Map@ identifier
     -- @padSize@. It then takes a function, whose only argument is a
-    -- singleton list containing the symbolic padding size and check if the 
+    -- singleton list containing the symbolic padding size and check if the
     -- value is 0 or not. This function is applied to every axis in the map,
     -- and the final result checks if all values in @padSize@ are 0 or not.
     --
@@ -293,7 +295,7 @@ module TensorRight
     -- conjunction of all the individual preconditions.
     --
     -- For the constructs available to the user to express preconditions, please
-    -- refer to the [preconditions]("TensorRight#g:precond") section and 
+    -- refer to the [preconditions]("TensorRight#g:precond") section and
     -- functions 'TensorRight.precondition', 'TensorRight.precondition''.
     --
     -- Apart from the helpers provided there, some Grisette operators are also
@@ -397,7 +399,9 @@ module TensorRight
     -- @
 
     -- * Differences from the Paper
-    -- 
+
+    --
+
     -- | The TensorRight paper introduces aggregated-axes as a set of named-axes
     -- and RClasses as a property of a family of aggregated-axes, such that:
     --

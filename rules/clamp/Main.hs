@@ -1,9 +1,9 @@
 module Main (main) where
 
+import Control.Monad.Except (runExceptT)
 import Grisette hiding ((-->))
 import TensorRight
 import TensorRight.Internal.Core.Tensor.TensorInt (tensorValLt)
-import Control.Monad.Except (runExceptT)
 
 rule01 :: forall a. NumRule a
 rule01 _ = do
@@ -27,12 +27,12 @@ rule02 _ = do
   numTensorAssumption
     [const1, const2]
     forallIdx
-    (\[c1, c2] -> simpleMerge $ do
-      u <- runExceptT $ tensorValLt c1 c2
-      case u of
-        Left _ -> con True
-        Right v -> return v
-      )
+    ( \[c1, c2] -> simpleMerge $ do
+        u <- runExceptT $ tensorValLt c1 c2
+        case u of
+          Left _ -> con True
+          Right v -> return v
+    )
   lhs <- numBinOp Max const1 (numBinOp Min a const2)
   rhs <- clamp const1 a const2
   rewrite "Max(Broadcast(Const), Min(A, Broadcast(Const2))) ⇒ Clamp(A,Const,Const2)" lhs rhs

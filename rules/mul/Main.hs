@@ -1,7 +1,7 @@
 module Main (main) where
 
-import TensorRight
 import Grisette (cvc5)
+import TensorRight
 
 rule01 :: forall a. NumRule a
 rule01 _ = do

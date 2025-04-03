@@ -86,12 +86,12 @@ rule06 = do
   rclass <- newRClass "rclass"
   [sizeMap, startMap, lengthMap] <- newMaps ["sizeMap", "startMap", "lengthMap"] rclass
 
-  lhs <- dynamicSlice (iota [rclass --> sizeMap] (ByRClass rclass)) $
-          DySlice
-          {
-            start = [rclass --> startMap],
-            sizes = [rclass --> lengthMap]
-          }
+  lhs <-
+    dynamicSlice (iota [rclass --> sizeMap] (ByRClass rclass)) $
+      DySlice
+        { start = [rclass --> startMap],
+          sizes = [rclass --> lengthMap]
+        }
   rhsSize <- newConstMap "size" 1 rclass
   -- Cannot express rule since we need a precondition on "a"
   rhs <- constant @TensorInt "a" [rclass --> rhsSize]
