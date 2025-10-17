@@ -774,6 +774,36 @@ executable rules-xla-sub
     , unordered-containers
   default-language: Haskell2010
 
+executable rules-xla-test1
+  main-is: Main.hs
+  other-modules:
+      Paths_tensor_right
+  hs-source-dirs:
+      rules/xla/test1
+  default-extensions:
+      DuplicateRecordFields
+      OverloadedStrings
+      TypeApplications
+      AllowAmbiguousTypes
+      ScopedTypeVariables
+      FlexibleContexts
+      RankNTypes
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.14 && <5
+    , deepseq
+    , grisette ==0.11.*
+    , hashable
+    , mtl
+    , ordered-containers
+    , prettyprinter
+    , sbv
+    , template-haskell
+    , tensor-right
+    , text
+    , unordered-containers
+  default-language: Haskell2010
+
 test-suite spec
   type: exitcode-stdio-1.0
   main-is: Main.hs

@@ -2,17 +2,19 @@ SHELL=/usr/bin/env bash
 
 .PHONY: build verify maxMinToClampBefore maxMinToClampAfter generalize plot	clean
 
+ARGS = $(filter-out $@,$(MAKECMDGOALS))
+
 build:
 	stack build
 
 verify: build
-	./runall.sh 2> >(tee ./plot/result.txt);
+	./runall.sh $(ARGS) xla 2> >(tee ./plot/result.txt);
 
 generalize: build
 	stack exec rules-generalize
 
 plot: build
-	if [ ! -f ./plot/result.txt ]; then ./runall.sh 2> >(tee ./plot/result.txt); fi
+	if [ ! -f ./plot/result.txt ]; then ./runall.sh $(ARGS) 2> >(tee ./plot/result.txt); fi
 	cd plot && python3 timing_plot.py
 
 clean:
